@@ -18,7 +18,7 @@ pip install --upgrade hibp-downloader
 ```
 
 ## Usage
-![screenshot-help.png](docs%2Fassets%2Fscreenshot-help.png)
+![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/assets/screenshot-help.png)
 
 ## Runtime Logs
 Sample download activity logs 

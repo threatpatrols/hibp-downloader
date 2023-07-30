@@ -5,19 +5,23 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "hibp-downloader"
 version = "0.1.1"
-description = ""
-authors = ["Nicholas de Jong <ndejong@threatpatrols.com>"]
+description = "Efficiently download new data for a local-copy of the pwned password hashes from api[.]pwnedpasswords[.]com"
+authors = ["Nicholas de Jong <contact@threatpatrols.com>"]
 license = "BSD-3-Clause"
 readme = "README.md"
-packages = [
-    { include = "hibp_downloader", from = "src" }
+packages = [{ include = "hibp_downloader", from = "src" }]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: BSD License",
 ]
-classifiers = []
-keywords = []
+keywords = ["hibp-downloader", "hibp", "haveibeenpwned", "haveibeenpwned-downloader", "sha1", "ntlm"]
 
 [tool.poetry.urls]
+"Bug Tracker" = "https://github.com/threatpatrols/hibp-downloader/issues"
+Documentation = "https://github.com/threatpatrols/hibp-downloader"
 Homepage = "https://gitlab.com/threatpatrols/hibp-downloader"
-Repository = "git@gitlab.com:threatpatrols/hibp-downloader.git"
+Repository = "https://gitlab.com/threatpatrols/hibp-downloader"
 
 [tool.poetry.scripts]
 hibp-downloader = "hibp_downloader.main:entrypoint"
