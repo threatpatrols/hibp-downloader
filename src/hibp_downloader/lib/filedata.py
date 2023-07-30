@@ -2,6 +2,7 @@ import gzip
 import json
 import os
 from datetime import datetime
+from typing import Union
 
 import aiofiles
 import aiofiles.os
@@ -17,7 +18,7 @@ async def append_stringfile(filename: str, content: str) -> None:
         await f.write(content)
 
 
-async def save_bytesfile(pathname: str, filename: str, content: bytes, timestamp: datetime | None = None) -> None:
+async def save_bytesfile(pathname: str, filename: str, content: bytes, timestamp: Union[datetime, None] = None) -> None:
     await aiofiles.os.makedirs(pathname, exist_ok=True)
     async with aiofiles.open(os.path.join(pathname, filename), mode="wb") as f:
         await f.write(content)
@@ -27,7 +28,7 @@ async def save_bytesfile(pathname: str, filename: str, content: bytes, timestamp
 
 
 async def save_datafile(
-    data_path: str, prefix: str, content: bytes, filename_suffix: str, timestamp: datetime | None = None
+    data_path: str, prefix: str, content: bytes, filename_suffix: str, timestamp: Union[datetime, None] = None
 ) -> None:
     await save_bytesfile(
         pathname=os.path.join(data_path, prefix[0:2], prefix[2:4]),

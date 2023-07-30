@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 
 __logging_format__ = "%(asctime)s | %(levelname)s | __name__ | %(message)s"
 __logging_date_format__ = "%Y-%m-%dT%H:%M:%S%z"
@@ -12,7 +13,7 @@ class LoggerNone:
         return empty
 
 
-def logger_get(name: str | None, loglevel="warning", logfile=None) -> logging.Logger | LoggerNone:
+def logger_get(name: Union[str, None], loglevel="warning", logfile=None) -> Union[logging.Logger, LoggerNone]:
     if name is None:
         return LoggerNone()
 

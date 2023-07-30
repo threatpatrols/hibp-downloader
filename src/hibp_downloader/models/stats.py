@@ -1,14 +1,13 @@
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import List, Union
 
 from .prefix_metadata import PrefixMetadata, PrefixMetadataDataSource
 
 
-@dataclass(kw_only=True)
+@dataclass()
 class QueueItemStats:
-    start_time: float = field(default=time.time())
-
     prefix_first: str
     prefix_last: str
     prefix_count: int
@@ -22,7 +21,8 @@ class QueueItemStats:
     remote_source_origin_source_count: int
     unknown_source_status_count: int
 
-    __end_time: float | None = field(default=None)
+    start_time: float = field(default=time.time())
+    __end_time: Union[float, None] = field(default=None)
     __request_rate: float = field(default=0)  # per-second
     __bytes_received_rate: float = field(default=0)  # per-second
 
@@ -53,12 +53,12 @@ class QueueItemStats:
         self.end_time = time.time()
 
 
-@dataclass(kw_only=True)
+@dataclass()
 class QueueRunningStats:
     start_time: float = field(default=time.time())
     queue_item_count = 0
 
-    prefix_latest: str | None = field(default=None)
+    prefix_latest: Union[str, None] = field(default=None)
     prefix_count_sum = 0
 
     request_count_sum = 0
@@ -70,7 +70,7 @@ class QueueRunningStats:
     remote_source_origin_source_count_sum = 0
     unknown_source_status_count_sum = 0
 
-    __end_time: float | None = field(default=None)
+    __end_time: Union[float, None] = field(default=None)
     __request_rate_total: float = field(default=0)  # per-second
     __bytes_received_rate_total: float = field(default=0)  # per-second
 
@@ -117,7 +117,7 @@ class QueueRunningStats:
 class QueueItemStatsCompute:
     stats: QueueItemStats
 
-    def __init__(self, results: list[PrefixMetadata]):
+    def __init__(self, results: List[PrefixMetadata]):
         data = {
             "start_time": None,
             "prefix_first": results[0].prefix,

@@ -1,0 +1,35 @@
+
+name: build tests
+on: [push]
+
+jobs:
+
+  test:
+    name: "Test package"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: NiklasRosenstein/slap@gha/install/v1
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with: { python-version: "${{ matrix.python-version }}" }
+
+    - name: Create a venv to operate within using slap-cli
+      run: |
+        slap venv --create tester
+
+    - name: Install, test and build a package to install
+      run: |
+        slap install --use-venv=tester
+        slap test --use-venv=tester
+        mkdir build-tester
+        slap publish --build-directory build-tester --dry
+
+    - name: Install the package from whl and run the application
+      run: |
+        pip install build-tester/*.whl
+        hibp-downloader --help

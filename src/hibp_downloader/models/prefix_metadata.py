@@ -2,6 +2,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from enum import Enum
+from typing import Union
 
 from .hash_type import HashType
 
@@ -14,18 +15,18 @@ class PrefixMetadataDataSource(str, Enum):
     remote_source_origin_source = "remote_source_origin_source"
 
 
-@dataclass(kw_only=True)
+@dataclass()
 class PrefixMetadata:
     prefix: str
-    start_timestamp: datetime | None = field(default=None)
-    hash_type: HashType | None = field(default=None)
-    etag: str | None = field(default=None)
-    bytes: int | None = field(default=0)
-    server_timestamp: str | datetime | None = field(default=None)
-    last_modified: str | datetime | None = field(default=None)
-    content_encoding: str | None = field(default=None)
-    content_checksum: str | None = field(default=None)
-    data_source: PrefixMetadataDataSource | None = field(default=None)
+    start_timestamp: Union[datetime, None] = field(default=None)
+    hash_type: Union[HashType, None] = field(default=None)
+    etag: Union[str, None] = field(default=None)
+    bytes: Union[int, None] = field(default=0)
+    server_timestamp: Union[str, datetime, None] = field(default=None)
+    last_modified: Union[str, datetime, None] = field(default=None)
+    content_encoding: Union[str, None] = field(default=None)
+    content_checksum: Union[str, None] = field(default=None)
+    data_source: Union[PrefixMetadataDataSource, None] = field(default=None)
 
     def __post_init__(self):
         if isinstance(self.server_timestamp, str):
