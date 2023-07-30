@@ -1,0 +1,81 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "hibp-downloader"
+version = "0.1.0"
+description = ""
+authors = ["Nicholas de Jong <ndejong@threatpatrols.com>"]
+license = "BSD-3-Clause"
+readme = "README.md"
+packages = [
+    { include = "hibp_downloader", from = "src" }
+]
+classifiers = []
+keywords = []
+
+[tool.poetry.urls]
+Homepage = "https://gitlab.com/threatpatrols/hibp-downloader"
+Repository = "git@gitlab.com:threatpatrols/hibp-downloader.git"
+
+[tool.poetry.scripts]
+hibp-downloader = "hibp_downloader.main:entrypoint"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+"httpx[http2]" = "^0.24.1"      # https://pypi.org/project/httpx/#history
+"typer[all]" = "0.9.0"          # https://pypi.org/project/typer/#history
+shellingham = "1.5.0.post1"     # https://pypi.org/project/shellingham/#history
+aiofiles = "23.1.0"             # https://pypi.org/project/aiofiles/#history
+
+[tool.poetry.dev-dependencies]
+black = "^23.7.0"               # https://pypi.org/project/black/#history
+flake8 = "^6.0.0"               # https://pypi.org/project/flake8/#history
+isort = "^5.12.0"               # https://pypi.org/project/isort/#history
+mypy = "^1.4.1"                 # https://pypi.org/project/mypy/#history
+pycln = "^2.1.7"                # https://pypi.org/project/pycln/#history
+pytest = "^7.4.0"               # https://pypi.org/project/pytest/#history
+safety = "^2.4.0b1"             # https://pypi.org/project/safety/#history
+pyinstrument = "^4.4.0"         # https://pypi.org/project/pyinstrument/#history
+types-aiofiles = "23.1.0.5"     # https://pypi.org/project/types-aiofiles/#history
+
+[tool.slap]
+typed = true
+release.branch = "dev"
+
+[tool.slap.test]
+check = "slap check"
+black = "black --check src/ tests/"
+flake8 = "flake8 src/ tests/"
+isort = "isort --check-only src/ tests/"
+# mypy = "dmypy run src/"
+pycln  = "pycln src/ tests/ --check"
+safety = "pip freeze | safety check --stdin --short-report --output text"
+pytest = "pytest tests/ -vv"
+
+[tool.slap.run]
+format = "black src/ tests/ && isort src/ tests/ "
+
+[tool.mypy]
+explicit_package_bases = true
+ignore_missing_imports = true
+mypy_path = ["src"]
+namespace_packages = true
+pretty = true
+python_version = "3.10"
+show_error_codes = true
+show_error_context = true
+strict = false
+warn_no_return = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+
+[tool.isort]
+profile = "black"
+line_length = 120
+combine_as_imports = true
+
+[tool.black]
+line-length = 120

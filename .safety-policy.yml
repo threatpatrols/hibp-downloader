@@ -1,0 +1,8 @@
+# Safety Security and License Configuration file
+# https://docs.pyup.io/docs/safety-20-policy-file
+
+security:
+    ignore-cvss-severity-below: 0
+    ignore-cvss-unknown-severity: False
+
+    continue-on-vulnerability-error: False
