@@ -5,7 +5,7 @@ from .lib.logger import logger_get
 from .models import AppContext
 
 __title__ = "HIBP Downloader"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __logger_name__ = "hibp-downloader"
 __pwnedpasswords_api_url__ = "https://api.pwnedpasswords.com"
 __local_cache_ttl_default__ = 86400
