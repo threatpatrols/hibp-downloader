@@ -23,3 +23,7 @@ per-file-ignores =
 
     # W293 blank line contains whitespace - https://www.flake8rules.com/rules/W293.html
     src/**/app.py: W293
+
+    # E203 whitespace before ':' - https://www.flake8rules.com/rules/E203.html
+    # E741 ambiguous variable name 'l' - https://www.flake8rules.com/rules/E741.html
+    src/hibp_downloader/lib/md4.py: E203, E741

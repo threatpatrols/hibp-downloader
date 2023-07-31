@@ -1,0 +1,15 @@
+
+template "mkdocs" {
+    content_directory = "content"
+}
+
+action "mkdocs-update-config" {
+    site_name = "HIBP Downloader"
+    update '$.theme.features' add: ['navigation.sections']
+    update '$.theme.palette' add: {'scheme': 'default', 'primary': 'red'}
+    update '$.theme.features' add: ['content.code.copy']
+}
+
+action "preprocess-markdown" {
+    use "pydoc"
+}

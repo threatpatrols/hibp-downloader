@@ -78,7 +78,7 @@ async def load_datafile(
     if prepend_prefix is False:
         return data.decode("utf8")
 
-    data_lines = [f"{prefix.lower()}{x.lower()}" for x in data.decode("utf8").replace("\r", "").split("\n")]
+    data_lines = [f"{prefix.upper()}{x.upper()}" for x in data.decode("utf8").replace("\r", "").split("\n")]
     return "\n".join(data_lines)
 
 

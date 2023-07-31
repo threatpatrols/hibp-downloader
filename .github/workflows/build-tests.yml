@@ -24,6 +24,7 @@ jobs:
 
     - name: Install, test and build a package to install
       run: |
+        slap release --validate
         slap install --use-venv=tester
         slap test --use-venv=tester
         mkdir build-tester

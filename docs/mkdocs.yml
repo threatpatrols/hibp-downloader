@@ -1,0 +1,16 @@
+
+docs_dir: content
+site_name: "HIBP Downloader"
+
+nav:
+  - Home: index.md
+
+  - Commands:
+    - command/download.md
+    - command/generate.md
+    - command/query.md
+
+  - Other:
+    - project.md
+    - development.md
+    - license.md

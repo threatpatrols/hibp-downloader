@@ -24,14 +24,19 @@ __logger_level__ = "info"
 if "--debug" in argv or getenv("HIBPDL_DEBUG", "").lower().startswith(("true", "yes", "enable")):
     __logger_level__ = "debug"
 
+if "--quiet" in argv or getenv("HIBPDL_QUIET", "").lower().startswith(("true", "yes", "enable")):
+    __logger_level__ = "fatal"
+
 __app_profiler__ = False
 if "--profiler" in argv or getenv("HIBPDL_PROFILER", "").lower().startswith(("true", "yes", "enable")):
     __app_profiler__ = True
 
 __help_epilog_footer__ = f"""
-{__title__}: v{__version__}
+{__title__} v{__version__}
 
-Project: [https://github.com/threatpatrols/hibp-downloader](https://github.com/threatpatrols/hibp-downloader)
+Docs: [hibp-downloader.readthedocs.io](https://hibp-downloader.readthedocs.io)
+
+Project: [github.com/threatpatrols/hibp-downloader](https://github.com/threatpatrols/hibp-downloader)
 """
 
 logger_get(name=__logger_name__, loglevel=__logger_level__)

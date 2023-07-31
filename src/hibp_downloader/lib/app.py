@@ -1,7 +1,6 @@
 import importlib
 import os
 import sys
-import textwrap
 
 import typer
 from typing_extensions import Annotated
@@ -15,15 +14,11 @@ app = typer.Typer(
     add_completion=app_context.add_completion,
     no_args_is_help=app_context.no_args_is_help,
     rich_markup_mode="rich",
-    epilog=textwrap.dedent(
-        """
-        Environment variables prefixed with HIBPDL_ that match their command-line equivalent may be used; for
-        example use [bold]HIBPDL_DATA_PATH[/bold] to set the --data-path command option.
-           
-           
-           
-    """
-        + __help_epilog_footer__,
+    epilog=(
+        "Environment variables prefixed with HIBPDL_ that match their command-line equivalent may be used; for "
+        "example use [bold]HIBPDL_DATA_PATH[/bold] to set the --data-path command option."
+        "\n\n---\n"
+        f"{__help_epilog_footer__}"
     ),
 )
 
@@ -62,11 +57,19 @@ def main(
         ),
     ] = False,
     debug: Annotated[
-        bool, typer.Option(help="Enable debug logging to stderr", envvar="HIBPDL_DEBUG", show_envvar=False)
+        bool, typer.Option(help="Set logging to debug-level messages", envvar="HIBPDL_DEBUG", show_envvar=False)
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            help="Set logging to fatal-level messages; overrides --debug option",
+            envvar="HIBPDL_QUIET",
+            show_envvar=False,
+        ),
     ] = False,
 ):
     """
-    [bold]hibp-downloader[/bold] - Efficiently download new data for a local-copy of the pwned password hashes from https://api.pwnedpasswords.com
+    [bold]hibp-downloader[/bold] - Efficiently download new pwned password hashes from api.pwnedpasswords.com fast.
     """
 
     # return early if --help is all we need
@@ -75,6 +78,10 @@ def main(
 
     # debug is captured at __init__; referenced here for happy linters
     if debug:
+        ...
+
+    # quiet is captured at __init__; referenced here for happy linters
+    if quiet:
         ...
 
     # profiler is captured at __init__; referenced here for happy linters
