@@ -90,10 +90,13 @@ async def load_metadata(metadata_path: str, prefix: str) -> PrefixMetadata:
         async with aiofiles.open(filename, "r") as f:
             content = await f.read()
 
-    if content is None:
+    if not content:
         return PrefixMetadata(prefix=prefix)
 
-    prefix_metadata = PrefixMetadata(**json.loads(content))
+    try:
+        prefix_metadata = PrefixMetadata(**json.loads(content))
+    except ValueError:
+        return PrefixMetadata(prefix=prefix)
 
     if isinstance(prefix_metadata.server_timestamp, str):
         prefix_metadata.server_timestamp = datetime.fromisoformat(prefix_metadata.server_timestamp)

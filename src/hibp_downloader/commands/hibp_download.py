@@ -103,17 +103,16 @@ def main(
         ignore_etag = True
         local_cache_ttl = 0
 
-    encoding_type = __encoding_type__
-    prefix_chunks = iterable_chunker(
-        iterable=hex_sequence(hex_first=first_hash[0:5], hex_last=last_hash[0:5]), size=chunk_size
-    )
-
     results_queue_process = Process(target=results_queue_processor, args=(results_queue,))
     results_queue_process.start()
 
     with Pool(
         processes=processes, initializer=results_queue_initialize, initargs=(results_queue,)
     ) as multiprocessing_pool:
+        prefix_chunks = iterable_chunker(
+            iterable=hex_sequence(hex_first=first_hash[0:5], hex_last=last_hash[0:5]), size=chunk_size
+        )
+
         multiprocessing_pool.starmap(
             pwnedpasswords_get_and_store_asyncio_run,
             zip(
@@ -121,12 +120,13 @@ def main(
                 repeat(hash_type),
                 repeat(os.path.join(app_context.data_path, hash_type.value)),  # data_path
                 repeat(os.path.join(app_context.metadata_path, hash_type.value)),  # metadata_path
-                repeat(encoding_type),
+                repeat(__encoding_type__),  # encoding_type: read comments in __init__ before wanting Brotli
                 repeat(ignore_etag),
                 repeat(local_cache_ttl),
                 repeat(logger),
             ),
         )
+
         multiprocessing_pool.close()
         multiprocessing_pool.join()
         results_queue.put(results_queue_exit_sentinel)
@@ -263,6 +263,8 @@ def results_queue_processor(q: Queue):
     while True:
         metadata_items = q.get()
         if metadata_items == results_queue_exit_sentinel:
+            running_stats.end_trigger()
+            logger.info(f"Finished in {round(running_stats.run_time/60,1)}min")
             break
 
         if metadata_items:
@@ -279,7 +281,7 @@ def results_queue_processor(q: Queue):
                 f"runtime_rate=[{to_mbytes(running_stats.bytes_received_rate_total * 8, 1)}MBit/s "
                 f"{int(running_stats.request_rate_total)}req/s "
                 f"~{int(running_stats.bytes_received_rate_total / __approx_gzip_bytes_per_hash__)}H/s] "
-                f"runtime={round(running_stats.run_time/3600,2)}hr "
+                f"runtime={round(running_stats.run_time/60,1)}min "
                 f"download={to_mbytes(running_stats.bytes_received_sum, 1)}MB"
             )
 

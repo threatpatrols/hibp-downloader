@@ -28,8 +28,10 @@ __app_profiler__ = False
 if "--profiler" in argv or getenv("HIBPDL_PROFILER", "").lower().startswith(("true", "yes", "enable")):
     __app_profiler__ = True
 
-__help_epilog_footer__ = """
-        Project: [https://github.com/threatpatrols/hibp-downloader](https://github.com/threatpatrols/hibp-downloader)
+__help_epilog_footer__ = f"""
+{__title__}: v{__version__}
+
+Project: [https://github.com/threatpatrols/hibp-downloader](https://github.com/threatpatrols/hibp-downloader)
 """
 
 logger_get(name=__logger_name__, loglevel=__logger_level__)

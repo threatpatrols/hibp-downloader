@@ -5,12 +5,12 @@
 [![build tests](https://github.com/threatpatrols/hibp-downloader/actions/workflows/build-tests.yml/badge.svg)](https://github.com/threatpatrols/hibp-downloader/actions/workflows/build-tests.yml)
 [![License](https://img.shields.io/github/license/threatpatrols/hibp-downloader.svg)](https://github.com/threatpatrols/hibp-downloader)
 
-This is a Python implementation of the original [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader)
-that provides some additional useful functionality 
- - Automatically only download prefix-chunks that have changed since the last download
+This is a Python implementation of [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader)
+that is more download efficient and provides additional useful functionality
+ - Automatically **only** download prefix-chunks that have changed since the last download
  - Ability to start, stop and re-start without loss of data already collected
- - Ability to name the `--first-hash` and `--last-hash` positions
- - Metadata file per prefix file in JSON format for easy data reuse
+ - Ability to start and stop at named hash positions
+ - Per prefix file metadata in JSON format for easy data reuse
 
 ## Install
 ```commandline
@@ -21,25 +21,22 @@ pip install --upgrade hibp-downloader
 ![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/assets/screenshot-help.png)
 
 ## Runtime Logs
-Sample download activity logs 
+Sample download activity log
 ```text
-2023-07-30T21:42:06+1000 | INFO | hibp-downloader | prefix=65747 source=[lc:207328 et:0 rc:56672 ro:0 xx:0] runtime_rate=[10.3MBit/s 79req/s ~65602H/s] runtime=0.2hr download=922.5MB
-2023-07-30T21:42:07+1000 | INFO | hibp-downloader | prefix=29da7 source=[lc:207328 et:0 rc:56792 ro:0 xx:0] runtime_rate=[10.4MBit/s 79req/s ~65646H/s] runtime=0.2hr download=924.5MB
-2023-07-30T21:42:09+1000 | INFO | hibp-downloader | prefix=43c7f source=[lc:207328 et:0 rc:56912 ro:0 xx:0] runtime_rate=[10.3MBit/s 79req/s ~65617H/s] runtime=0.2hr download=926.5MB
+2023-07-31T03:22:45+1000 | INFO | hibp-downloader | prefix=e585f source=[lc:265201 et:0 rc:722148 ro:3 xx:0] runtime_rate=[11.2MBit/s 86req/s ~71005H/s] runtime=2.33hr download=11748.0MB
+2023-07-31T03:22:48+1000 | INFO | hibp-downloader | prefix=e5877 source=[lc:265201 et:0 rc:722268 ro:3 xx:0] runtime_rate=[11.2MBit/s 86req/s ~70998H/s] runtime=2.33hr download=11750.0MB
+2023-07-31T03:22:50+1000 | INFO | hibp-downloader | prefix=f5837 source=[lc:265201 et:0 rc:722388 ro:3 xx:0] runtime_rate=[11.2MBit/s 86req/s ~70992H/s] runtime=2.33hr download=11751.9MB
 ```
- - 79 requests per second to api.pwnedpasswords.com
- - 207,328 prefix files from (`lc`) local-cache
- - 56,912 prefix files from (`rc`) remote-cache
- - 0 files from (`ro`) remote-origin, 0 files failed (`xx`) download
- - estimated 65,617 hash values downloaded per second
- - 926MB downloaded in ~12 minutes (0.20 hour)
-
-
-## Issues
- - https://github.com/threatpatrols/hibp-downloader/issues
+ - 86 requests per second to api.pwnedpasswords.com
+ - 265,201 prefix files from (`lc`) local-cache; 722,388 from (`rc`) remote-cache; 3 from (`ro`) remote-origin; 0 failed (`xx`) download
+ - estimated ~70k hash values downloaded per second
+ - 11.5GB (11,751MB) downloaded in 2.3 hours
 
 ## Source
  - https://github.com/threatpatrols/hibp-downloader
+
+## Issues
+ - https://github.com/threatpatrols/hibp-downloader/issues
 
 ## Copyright
  - Copyright &copy; 2023 Threat Patrols Pty Ltd &lt;contact@threatpatrols.com&gt;

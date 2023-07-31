@@ -87,7 +87,7 @@ def main(
     app_context.metadata_path = metadata_path if metadata_path else data_path
 
     # start
-    logger.info(f"{__title__} [v{__version__}]")
+    logger.info(f"{__title__}: v{__version__}")
 
 
 def load_commands():
