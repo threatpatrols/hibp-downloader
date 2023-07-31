@@ -25,7 +25,7 @@ pip install --upgrade hibp-downloader
 ```
 
 ## Usage
-![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/assets/screenshot-help.png)
+![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/content/assets/screenshot-help.png)
 
 ## Performance
 Sample download activity log; host with 12 cores on 45Mbit/s DSL connection. 

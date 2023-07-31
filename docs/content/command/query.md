@@ -1,4 +1,4 @@
 # Query
 
 ## Usage
-![screenshot-help.png](/assets/screenshot-query-help.png)
+![screenshot-help.png](../assets/screenshot-query-help.png)

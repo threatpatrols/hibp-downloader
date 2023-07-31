@@ -1,4 +1,4 @@
 # Download
 
 ## Usage
-![screenshot-help.png](/assets/screenshot-download-help.png)
+![screenshot-help.png](../assets/screenshot-download-help.png)

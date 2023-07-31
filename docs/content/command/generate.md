@@ -1,4 +1,4 @@
 # Generate
 
 ## Usage
-![screenshot-help.png](/assets/screenshot-generate-help.png)
+![screenshot-help.png](../assets/screenshot-generate-help.png)
