@@ -9,15 +9,15 @@ import typer
 from typing_extensions import Annotated
 
 from hibp_downloader import (
-    __approx_gzip_bytes_per_hash__,
-    __encoding_type__,
-    __help_epilog_footer__,
-    __local_cache_ttl_default__,
-    __logger_name__,
-    __logging_info_event_modulus__,
-    __multiprocessing_prefixes_chunk_size__,
-    __multiprocessing_processes_default__,
-    __pwnedpasswords_api_url__,
+    APPROX_GZIP_BYTES_PER_HASH,
+    ENCODING_TYPE,
+    HELP_EPILOG_FOOTER,
+    LOCAL_CACHE_TTL_DEFAULT,
+    LOGGER_NAME,
+    LOGGING_INFO_EVENT_MODULUS,
+    MULTIPROCESSING_PREFIXES_CHUNK_SIZE,
+    MULTIPROCESSING_PROCESSES_DEFAULT,
+    PWNEDPASSWORDS_API_URL,
     app_context,
 )
 from hibp_downloader.exceptions import HibpDownloaderException
@@ -33,9 +33,9 @@ from hibp_downloader.models import (
     QueueRunningStats,
 )
 
-logger = logger_get(name=__logger_name__)
+logger = logger_get(name=LOGGER_NAME)
 
-command = typer.Typer(no_args_is_help=False, epilog=__help_epilog_footer__)
+command = typer.Typer(no_args_is_help=False, epilog=HELP_EPILOG_FOOTER)
 command_name = "download"
 command_section = "Commands"
 
@@ -63,13 +63,13 @@ def main(
         typer.Option(
             help="Number of parallel processes to use; default value based on host CPU core count",
         ),
-    ] = __multiprocessing_processes_default__,
+    ] = MULTIPROCESSING_PROCESSES_DEFAULT,
     chunk_size: Annotated[
         int,
         typer.Option(
             help="Number of hash-prefixes to consume (asynchronously) per iteration per process",
         ),
-    ] = __multiprocessing_prefixes_chunk_size__,
+    ] = MULTIPROCESSING_PREFIXES_CHUNK_SIZE,
     force: Annotated[bool, typer.Option(help="Same as setting --local_cache_ttl=0 and --ignore-etag")] = False,
     ignore_etag: Annotated[
         bool, typer.Option(help="Do not use request etag headers to manage local/remote cached data")
@@ -80,7 +80,7 @@ def main(
             help="Time-to-live (seconds) on local metadata cache items; "
             "prevents requesting the same data twice in this period"
         ),
-    ] = __local_cache_ttl_default__,
+    ] = LOCAL_CACHE_TTL_DEFAULT,
 ):
     """
     Download new pwned password hash data from HIBP and update the local --data-path data storage path; use [bold cyan]download --help[/bold cyan] for more.
@@ -120,7 +120,7 @@ def main(
                 repeat(hash_type),
                 repeat(os.path.join(app_context.data_path, hash_type.value)),  # data_path
                 repeat(os.path.join(app_context.metadata_path, hash_type.value)),  # metadata_path
-                repeat(__encoding_type__),  # encoding_type: read comments in __init__ before wanting Brotli
+                repeat(ENCODING_TYPE),  # encoding_type: read comments in __init__ before wanting Brotli
                 repeat(ignore_etag),
                 repeat(local_cache_ttl),
                 repeat(logger),
@@ -219,7 +219,7 @@ async def pwnedpasswords_get_and_store_async(
 
 
 async def pwnedpasswords_get(prefix: str, hash_type: HashType, etag: str, encoding: str, httpx_debug: bool = False):
-    url = f"{__pwnedpasswords_api_url__}/range/{prefix}"
+    url = f"{PWNEDPASSWORDS_API_URL}/range/{prefix}"
     if hash_type == HashType.ntlm:
         url += "?mode=ntlm"
 
@@ -270,7 +270,7 @@ def results_queue_processor(q: Queue):
         if metadata_items:
             running_stats.add_item_stats(item=QueueItemStatsCompute(metadata_items).stats)
 
-        if running_stats.queue_item_count % __logging_info_event_modulus__ == 0:
+        if running_stats.queue_item_count % LOGGING_INFO_EVENT_MODULUS == 0:
             logger.info(
                 f"prefix={running_stats.prefix_latest} "
                 f"source=[lc:{running_stats.local_source_ttl_cache_count_sum} "
@@ -280,7 +280,7 @@ def results_queue_processor(q: Queue):
                 f"xx:{running_stats.unknown_source_status_count_sum}] "
                 f"runtime_rate=[{to_mbytes(running_stats.bytes_received_rate_total * 8, 1)}MBit/s "
                 f"{int(running_stats.request_rate_total)}req/s "
-                f"~{int(running_stats.bytes_received_rate_total / __approx_gzip_bytes_per_hash__)}H/s] "
+                f"~{int(running_stats.bytes_received_rate_total / APPROX_GZIP_BYTES_PER_HASH)}H/s] "
                 f"runtime={round(running_stats.run_time/60,1)}min "
                 f"download={to_mbytes(running_stats.bytes_received_sum, 1)}MB"
             )

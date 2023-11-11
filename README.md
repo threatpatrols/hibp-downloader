@@ -13,7 +13,7 @@ as (seems) Pythonly possible.
 
 ## Features
 
- - Only download hash-prefix content blocks when the hash-prefix block content has changed.
+ - Only download hash-prefix content blocks when the hash-prefix block content has changed (via content ETAG values).
  - Start, stop and re-start the data-collection process without loss of data already collected.
  - Ability to query clear text values and return results from the pwned password data set.
  - Generate a single text file with pwned password hash values in-order, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from the HIBP team.

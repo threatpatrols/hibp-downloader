@@ -2,9 +2,9 @@
 # Copyright [2023] Threat Patrols Pty Ltd (https://www.threatpatrols.com)
 #
 
-from . import __logger_name__, logger_get
+from . import LOGGER_NAME, logger_get
 
-logger = logger_get(__logger_name__)
+logger = logger_get(LOGGER_NAME)
 
 
 class HibpDownloaderBaseException(Exception):

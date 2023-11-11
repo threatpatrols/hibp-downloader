@@ -9,11 +9,11 @@ from sys import argv
 
 from typer import Exit as TyperExit
 
-from . import __logger_name__, app_context
+from . import LOGGER_NAME, app_context
 from .lib.app import invoke_app
 from .lib.logger import logger_get
 
-logger = logger_get(__logger_name__)
+logger = logger_get(LOGGER_NAME)
 profiler = None  # type: ignore
 
 

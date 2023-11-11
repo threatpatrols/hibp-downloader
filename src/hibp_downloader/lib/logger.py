@@ -1,19 +1,37 @@
-import logging
-from typing import Union
+#
+# Copyright [2022-2023] Threat Patrols Pty Ltd (https://www.threatpatrols.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
-__logging_format__ = "%(asctime)s | %(levelname)s | __name__ | %(message)s"
-__logging_date_format__ = "%Y-%m-%dT%H:%M:%S%z"
+import logging
+from typing import Any, Callable, Union
+
+LOGGING_FORMAT = "%(asctime)s | %(levelname)s | __name__ | %(message)s"
+LOGGING_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
 
 class LoggerNone:
-    def __getattr__(self, _):
-        def empty(*_):
+    def __getattr__(self, _: Any) -> Callable[..., Any]:
+        def empty(*_: Any) -> None:
             pass
 
         return empty
 
 
-def logger_get(name: Union[str, None], loglevel="warning", logfile=None) -> Union[logging.Logger, LoggerNone]:
+def logger_get(
+    name: Union[str, None], loglevel: str = "warning", logfile: Union[str, None] = None
+) -> Union[logging.Logger, LoggerNone]:
     if name is None:
         return LoggerNone()
 
@@ -25,7 +43,7 @@ def logger_get(name: Union[str, None], loglevel="warning", logfile=None) -> Unio
     logger.setLevel(logging_level)
 
     logging_formatter = LoggingFormatterWrapper(
-        fmt=__logging_format__, datefmt=__logging_date_format__, name=name, colorize_levelname=True
+        fmt=LOGGING_FORMAT, datefmt=LOGGING_TIMESTAMP_FORMAT, name=name, colorize_levelname=True
     )
 
     console_handler = logging.StreamHandler()
@@ -46,18 +64,18 @@ def logger_get(name: Union[str, None], loglevel="warning", logfile=None) -> Unio
     return logger
 
 
-def logger_setlevel(name: str, loglevel: str) -> None:
-    logger = logging.getLogger(name)
+def logger_setlevel(name: str, loglevel: str) -> logging.Logger:
+    logger = logger_get(name)
     logging_level = __logger_level_int(loglevel)
 
     logger.setLevel(logging_level)
     for handler in logger.handlers:
         handler.setLevel(logging_level)
 
-    return None
+    return logger
 
 
-def __logger_level_int(loglevel) -> int:
+def __logger_level_int(loglevel: str) -> int:
     logging_level = logging.getLevelName(loglevel.upper())
     try:
         int(logging_level)
@@ -70,21 +88,21 @@ def __logger_level_int(loglevel) -> int:
 class LoggingFormatterWrapper(logging.Formatter):
     colorize_levelname: bool = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         if "name" in kwargs:
-            kwargs["fmt"] = kwargs.get("fmt", "").replace("__name__", kwargs["name"])
+            kwargs["fmt"] = kwargs.get("fmt", Any).replace("__name__", kwargs["name"])
             del kwargs["name"]
         if "colorize_levelname" in kwargs:
             self.colorize_levelname = True
             del kwargs["colorize_levelname"]
         logging.Formatter.__init__(self, **kwargs)
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         if self.colorize_levelname:
             return self.colorized_levelname_format(record)
         return logging.Formatter.format(self, record)
 
-    def colorized_levelname_format(self, record):
+    def colorized_levelname_format(self, record: logging.LogRecord) -> str:
         levelname = record.levelname.upper()
 
         if levelname == "CRITICAL":

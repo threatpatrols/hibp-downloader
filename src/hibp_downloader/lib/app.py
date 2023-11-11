@@ -5,11 +5,11 @@ import sys
 import typer
 from typing_extensions import Annotated
 
-from .. import __help_epilog_footer__, __logger_name__, __title__, __version__, app_context
+from .. import HELP_EPILOG_FOOTER, LOGGER_NAME, __title__, __version__, app_context
 from ..exceptions import HibpDownloaderException
 from ..lib.logger import logger_get
 
-logger = logger_get(name=__logger_name__)
+logger = logger_get(name=LOGGER_NAME)
 app = typer.Typer(
     add_completion=app_context.add_completion,
     no_args_is_help=app_context.no_args_is_help,
@@ -18,7 +18,7 @@ app = typer.Typer(
         "Environment variables prefixed with HIBPDL_ that match their command-line equivalent may be used; for "
         "example use [bold]HIBPDL_DATA_PATH[/bold] to set the --data-path command option."
         "\n\n---\n"
-        f"{__help_epilog_footer__}"
+        f"{HELP_EPILOG_FOOTER}"
     ),
 )
 

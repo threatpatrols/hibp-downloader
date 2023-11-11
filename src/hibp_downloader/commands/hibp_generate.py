@@ -4,22 +4,16 @@ import os
 import typer
 from typing_extensions import Annotated
 
-from hibp_downloader import (
-    __encoding_type__,
-    __help_epilog_footer__,
-    __logger_name__,
-    __logging_info_event_modulus__,
-    app_context,
-)
+from hibp_downloader import ENCODING_TYPE, HELP_EPILOG_FOOTER, LOGGER_NAME, LOGGING_INFO_EVENT_MODULUS, app_context
 from hibp_downloader.exceptions import HibpDownloaderException
 from hibp_downloader.lib.filedata import append_stringfile, load_datafile
 from hibp_downloader.lib.generators import hex_sequence, iterable_chunker
 from hibp_downloader.lib.logger import logger_get
 from hibp_downloader.models import HashType
 
-logger = logger_get(name=__logger_name__)
+logger = logger_get(name=LOGGER_NAME)
 
-command = typer.Typer(no_args_is_help=False, epilog=__help_epilog_footer__)
+command = typer.Typer(no_args_is_help=False, epilog=HELP_EPILOG_FOOTER)
 command_name = "generate"
 command_section = "Commands"
 
@@ -73,10 +67,7 @@ async def pwnedpasswords_datastore_sorted_gather(filename, hash_type, first_hash
             *[pwnedpasswords_datastore_sorted_async(prefix, hash_type) for prefix in prefixes],
         )
 
-        if (
-            iteration_count == 0
-            or iteration_count % (__logging_info_event_modulus__ * __logging_info_event_modulus__) == 0
-        ):
+        if iteration_count == 0 or iteration_count % (LOGGING_INFO_EVENT_MODULUS * LOGGING_INFO_EVENT_MODULUS) == 0:
             logger.info(f"Prefix position {prefixes[0]!r} appending to {filename!r}")
         iteration_count += 1
 
@@ -87,11 +78,11 @@ async def pwnedpasswords_datastore_sorted_gather(filename, hash_type, first_hash
 
 
 async def pwnedpasswords_datastore_sorted_async(prefix, hash_type):
-    if __encoding_type__ in ("gz", "gzip"):
+    if ENCODING_TYPE in ("gz", "gzip"):
         filename_suffix = "gz"
         decompression_mode = "gzip"
     else:
-        raise HibpDownloaderException(f"Unsupported __encoding_type__ {__encoding_type__}")
+        raise HibpDownloaderException(f"Unsupported ENCODING_TYPE {ENCODING_TYPE}")
 
     source_data = await load_datafile(
         data_path=os.path.join(app_context.data_path, hash_type),

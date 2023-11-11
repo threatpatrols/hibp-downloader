@@ -1,10 +1,10 @@
 import httpx
 
-from hibp_downloader import __logger_name__, __title__, __version__
+from hibp_downloader import LOGGER_NAME, __title__, __version__
 from hibp_downloader.exceptions import HibpDownloaderException
 from hibp_downloader.lib.logger import logger_get
 
-logger = logger_get(__logger_name__)
+logger = logger_get(LOGGER_NAME)
 
 
 async def httpx_debug_request(request):

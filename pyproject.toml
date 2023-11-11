@@ -28,25 +28,26 @@ hibp-downloader = "hibp_downloader.main:entrypoint"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-"httpx[http2]" = "^0.24"        # https://pypi.org/project/httpx/#history
+"httpx[http2]" = "^0.25"        # https://pypi.org/project/httpx/#history
 "typer[all]" = "^0.9"           # https://pypi.org/project/typer/#history
 shellingham = "^1.5"            # https://pypi.org/project/shellingham/#history
 aiofiles = "^23.0"              # https://pypi.org/project/aiofiles/#history
 
 [tool.poetry.dev-dependencies]
-black = "^23.7"                 # https://pypi.org/project/black/#history
+black = "^23.11"                # https://pypi.org/project/black/#history
 flake8 = "^6.1"                 # https://pypi.org/project/flake8/#history
 isort = "^5.12"                 # https://pypi.org/project/isort/#history
-mypy = "^1.4"                   # https://pypi.org/project/mypy/#history
-pycln = "^2.1"                  # https://pypi.org/project/pycln/#history
+mypy = "^1.7"                   # https://pypi.org/project/mypy/#history
+pycln = "^2.3"                  # https://pypi.org/project/pycln/#history
 pytest = "^7.4"                 # https://pypi.org/project/pytest/#history
 safety = "^2.4.0b1"             # https://pypi.org/project/safety/#history
-pyinstrument = "^4.5"           # https://pypi.org/project/pyinstrument/#history
-types-aiofiles = "23.1"         # https://pypi.org/project/types-aiofiles/#history
+urllib3 = "~2.0"                # https://pypi.org/project/urllib3/#history
+pyinstrument = "^4.6"           # https://pypi.org/project/pyinstrument/#history
+types-aiofiles = "23.2"         # https://pypi.org/project/types-aiofiles/#history
 # NB: pip installs in .readthedocs.yml need to be kept up-to-date manually
 novella = "^0.2"                # https://pypi.org/project/novella/#history
 pydoc-markdown = "^4.8"         # https://pypi.org/project/pydoc-markdown/#history
-mkdocs-material = "^9.1"        # https://pypi.org/project/mkdocs-material/#history
+mkdocs-material = "^9.4"        # https://pypi.org/project/mkdocs-material/#history
 
 [tool.poetry.plugins."slap.plugins.check"]
 changelog = "slap.ext.checks.changelog:ChangelogValidationCheckPlugin"
