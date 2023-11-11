@@ -18,10 +18,10 @@ classifiers = [
 keywords = ["hibp-downloader", "hibp", "haveibeenpwned", "haveibeenpwned-downloader", "sha1", "ntlm"]
 
 [tool.poetry.urls]
+Documentation = "https://hibp-downloader.readthedocs.io/en/latest/"
+Homepage = "https://github.com/threatpatrols/hibp-downloader"
+Repository = "https://github.com/threatpatrols/hibp-downloader"
 "Bug Tracker" = "https://github.com/threatpatrols/hibp-downloader/issues"
-Documentation = "https://github.com/threatpatrols/hibp-downloader"
-Homepage = "https://gitlab.com/threatpatrols/hibp-downloader"
-Repository = "https://gitlab.com/threatpatrols/hibp-downloader"
 
 [tool.poetry.scripts]
 hibp-downloader = "hibp_downloader.main:entrypoint"
