@@ -1,3 +1,7 @@
+#
+# Copyright [2023] Threat Patrols Pty Ltd (https://www.threatpatrols.com)
+#
+
 from os import cpu_count, getenv
 from sys import argv
 
@@ -10,8 +14,8 @@ __version__ = "0.1.5"
 LOGGER_NAME = "hibp-downloader"
 PWNEDPASSWORDS_API_URL = "https://api.pwnedpasswords.com"
 LOCAL_CACHE_TTL_DEFAULT = 12 * 3600
-MULTIPROCESSING_PROCESSES_DEFAULT = cpu_count()
-MULTIPROCESSING_PREFIXES_CHUNK_SIZE = cpu_count() * 2
+MULTIPROCESSING_PROCESSES_DEFAULT = int(cpu_count() if cpu_count() else 4)  # type: ignore[arg-type]
+MULTIPROCESSING_PREFIXES_CHUNK_SIZE = 10
 APPROX_GZIP_BYTES_PER_HASH = 20.674
 LOGGING_INFO_EVENT_MODULUS = 5
 
@@ -28,10 +32,6 @@ if "--debug" in argv or getenv("HIBPDL_DEBUG", "").lower().startswith(("true", "
 if "--quiet" in argv or getenv("HIBPDL_QUIET", "").lower().startswith(("true", "yes", "enable")):
     LOGGER_LEVEL = "fatal"
 
-APP_PROFILER = False
-if "--profiler" in argv or getenv("HIBPDL_PROFILER", "").lower().startswith(("true", "yes", "enable")):
-    APP_PROFILER = True
-
 HELP_EPILOG_FOOTER = f"""
 {__title__} v{__version__}
 
@@ -41,4 +41,4 @@ Project: [github.com/threatpatrols/hibp-downloader](https://github.com/threatpat
 """
 
 logger_get(name=LOGGER_NAME, loglevel=LOGGER_LEVEL)
-app_context = AppContext(debug=True if LOGGER_LEVEL == "debug" else False, profiler=APP_PROFILER)
+app_context = AppContext(debug=True if LOGGER_LEVEL == "debug" else False)

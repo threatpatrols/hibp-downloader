@@ -50,12 +50,6 @@ def main(
             show_envvar=False,
         ),
     ] = "",
-    profiler: Annotated[
-        bool,
-        typer.Option(
-            hidden=True, help="Enable the application performance profiler", envvar="HIBPDL_PROFILER", show_envvar=False
-        ),
-    ] = False,
     debug: Annotated[
         bool, typer.Option(help="Set logging to debug-level messages", envvar="HIBPDL_DEBUG", show_envvar=False)
     ] = False,
@@ -82,10 +76,6 @@ def main(
 
     # quiet is captured at __init__; referenced here for happy linters
     if quiet:
-        ...
-
-    # profiler is captured at __init__; referenced here for happy linters
-    if profiler:
         ...
 
     # command context

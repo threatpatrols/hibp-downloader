@@ -32,8 +32,12 @@ def main(
     ],
     hash_type: Annotated[
         HashType,
-        typer.Option(help="Hash type to use from the --data-path", case_sensitive=False),
-    ] = HashType.sha1.value,
+        typer.Option(
+            "--hash-type",
+            help="Hash type to use from the --data-path",
+            case_sensitive=False,
+        ),
+    ] = HashType.sha1,
 ):
     """
     Query the local --data-path and return any data that may exist; [bold cyan]query --help[/bold cyan] for more.
@@ -41,11 +45,11 @@ def main(
 
     logger.debug(f"Starting command {app_context.command!r} from {os.path.basename(__file__)!r}")
 
-    if not os.path.isdir(app_context.data_path):
+    if app_context.data_path and not os.path.isdir(app_context.data_path):
         logger.error(f"Data path {app_context.data_path!r} does not exist, unable to continue")
         raise typer.Exit(1)
 
-    if not os.path.isdir(app_context.metadata_path):
+    if app_context.metadata_path and not os.path.isdir(app_context.metadata_path):
         logger.warning(f"Metadata path {app_context.metadata_path!r} does not exist, unable to continue")
         raise typer.Exit(1)
 
@@ -81,7 +85,7 @@ async def pwnedpasswords_query_datastore(password_hashed: str, hash_type: HashTy
 
     try:
         source_data = await load_datafile(
-            data_path=os.path.join(app_context.data_path, hash_type),
+            data_path=os.path.join(app_context.data_path, hash_type),  # type: ignore[arg-type]
             prefix=prefix,
             filename_suffix=filename_suffix,
             decompression_type=decompression_mode,
@@ -93,7 +97,9 @@ async def pwnedpasswords_query_datastore(password_hashed: str, hash_type: HashTy
 
     for line in source_data.split("\n"):
         if password_hashed.upper() in line:
-            result["hibp_count"] = int(line.split(":")[1])
+            line_parts = line.split(":")
+            if len(line_parts) >= 2:
+                result["hibp_count"] = int(line_parts[1])  # type: ignore[assignment]
             result["status"] = "Found"
             return stdout_json(result)
 

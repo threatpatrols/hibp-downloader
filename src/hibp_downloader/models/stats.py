@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 from .prefix_metadata import PrefixMetadata, PrefixMetadataDataSource
 
@@ -14,6 +14,7 @@ class QueueItemStats:
 
     request_count: int
     bytes_received: int
+    bytes_processed: int
 
     local_source_ttl_cache_count: int
     local_source_etag_match_count: int
@@ -24,15 +25,15 @@ class QueueItemStats:
     start_time: float = field(default=time.time())
     __end_time: Union[float, None] = field(default=None)
     __request_rate: float = field(default=0)  # per-second
-    __bytes_received_rate: float = field(default=0)  # per-second
+    __bytes_processed_rate: float = field(default=0)  # per-second
 
     @property
     def request_rate(self):
         return self.__request_rate
 
     @property
-    def bytes_received_rate(self):
-        return self.__bytes_received_rate
+    def bytes_processed_rate(self):
+        return self.__bytes_processed_rate
 
     @property
     def run_time(self):
@@ -47,7 +48,7 @@ class QueueItemStats:
         self.__end_time = value
         if self.run_time > 0:
             self.__request_rate = self.request_count / self.run_time
-            self.__bytes_received_rate = self.bytes_received / self.run_time
+            self.__bytes_processed_rate = self.bytes_processed / self.run_time
 
     def end_trigger(self):
         self.end_time = time.time()
@@ -63,6 +64,7 @@ class QueueRunningStats:
 
     request_count_sum = 0
     bytes_received_sum = 0
+    bytes_processed_sum = 0
 
     local_source_ttl_cache_count_sum = 0
     local_source_etag_match_count_sum = 0
@@ -72,15 +74,15 @@ class QueueRunningStats:
 
     __end_time: Union[float, None] = field(default=None)
     __request_rate_total: float = field(default=0)  # per-second
-    __bytes_received_rate_total: float = field(default=0)  # per-second
+    __bytes_processed_rate_total: float = field(default=0)  # per-second
 
     @property
     def request_rate_total(self):
         return self.__request_rate_total
 
     @property
-    def bytes_received_rate_total(self):
-        return self.__bytes_received_rate_total
+    def bytes_processed_rate_total(self):
+        return self.__bytes_processed_rate_total
 
     @property
     def run_time(self):
@@ -95,7 +97,7 @@ class QueueRunningStats:
         self.__end_time = value
         if self.run_time > 0:
             self.__request_rate_total = self.request_count_sum / self.run_time
-            self.__bytes_received_rate_total = self.bytes_received_sum / self.run_time
+            self.__bytes_processed_rate_total = self.bytes_processed_sum / self.run_time
 
     def end_trigger(self):
         self.end_time = time.time()
@@ -106,6 +108,7 @@ class QueueRunningStats:
         self.prefix_count_sum += item.request_count
         self.request_count_sum += item.request_count
         self.bytes_received_sum += item.bytes_received
+        self.bytes_processed_sum += item.bytes_processed
         self.local_source_ttl_cache_count_sum += item.local_source_ttl_cache_count
         self.local_source_etag_match_count_sum += item.local_source_etag_match_count
         self.remote_source_remote_cache_count_sum += item.remote_source_remote_cache_count
@@ -118,13 +121,14 @@ class QueueItemStatsCompute:
     stats: QueueItemStats
 
     def __init__(self, results: List[PrefixMetadata]):
-        data = {
+        data: Dict[str, Any] = {
             "start_time": None,
             "prefix_first": results[0].prefix,
             "prefix_last": results[-1].prefix,
             "prefix_count": len(results),
             "request_count": 0,
             "bytes_received": 0,
+            "bytes_processed": 0,
             "local_source_ttl_cache_count": 0,
             "local_source_etag_match_count": 0,
             "remote_source_remote_cache_count": 0,
@@ -138,11 +142,20 @@ class QueueItemStatsCompute:
             if item.start_timestamp and item.start_timestamp < oldest_timestamp:
                 oldest_timestamp = item.start_timestamp
 
-            if item.server_timestamp:
+            if item.data_source != PrefixMetadataDataSource.local_source_ttl_cache:
                 data["request_count"] += 1
 
+            item_bytes = 0
             if item.bytes and item.bytes > 0:
-                data["bytes_received"] += item.bytes
+                item_bytes = item.bytes
+
+            data["bytes_processed"] += item_bytes
+            if item.data_source not in (
+                PrefixMetadataDataSource.local_source_ttl_cache,
+                PrefixMetadataDataSource.local_source_etag_match,
+            ):
+                data["bytes_received"] += item_bytes
+                data["request_count"] += 1
 
             if item.data_source == PrefixMetadataDataSource.local_source_ttl_cache:
                 data["local_source_ttl_cache_count"] += 1

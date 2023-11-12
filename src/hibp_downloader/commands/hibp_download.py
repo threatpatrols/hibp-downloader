@@ -2,8 +2,10 @@ import asyncio
 import hashlib
 import os
 from datetime import datetime
-from itertools import repeat
-from multiprocessing import Pool, Process, Queue
+from multiprocessing import Manager, Process, Queue
+from os import cpu_count
+from pathlib import Path
+from typing import Any, List, Union
 
 import typer
 from typing_extensions import Annotated
@@ -21,7 +23,7 @@ from hibp_downloader import (
     app_context,
 )
 from hibp_downloader.exceptions import HibpDownloaderException
-from hibp_downloader.lib.filedata import load_metadata, save_datafile, save_metadatafile
+from hibp_downloader.lib.filedata import encoding_type_file_suffix, load_metadata, save_datafile, save_metadatafile
 from hibp_downloader.lib.generators import hex_sequence, iterable_chunker
 from hibp_downloader.lib.http import httpx_binary_response
 from hibp_downloader.lib.logger import logger_get
@@ -31,6 +33,7 @@ from hibp_downloader.models import (
     PrefixMetadataDataSource,
     QueueItemStatsCompute,
     QueueRunningStats,
+    WorkerArgs,
 )
 
 logger = logger_get(name=LOGGER_NAME)
@@ -40,8 +43,7 @@ command_name = "download"
 command_section = "Commands"
 
 
-results_queue = Queue()
-results_queue_exit_sentinel = "__results_queue_exit_sentinel__"
+QUEUE_WORKER_EXIT_SENTINEL = "__queue_exit_sentinel__"
 
 
 @command.callback(invoke_without_command=True)
@@ -49,7 +51,7 @@ def main(
     hash_type: Annotated[
         HashType,
         typer.Option(help="Hash type to download from HIBP to the --data-path", case_sensitive=False),
-    ] = HashType.sha1.value,
+    ] = HashType.sha1,
     first_hash: Annotated[
         str,
         typer.Option(help="Start the downloader from a specific hash prefix; trimmed to the first 5 characters"),
@@ -58,10 +60,13 @@ def main(
         str,
         typer.Option(help="Stop the downloader at a hash prefix; trimmed to the first 5 characters"),
     ] = "fffff",
-    processes: Annotated[
+    number_of_workers: Annotated[
         int,
         typer.Option(
+            "--processes",
             help="Number of parallel processes to use; default value based on host CPU core count",
+            min=1,
+            max=cpu_count(),
         ),
     ] = MULTIPROCESSING_PROCESSES_DEFAULT,
     chunk_size: Annotated[
@@ -88,11 +93,11 @@ def main(
 
     logger.debug(f"Starting command {app_context.command!r} from {os.path.basename(__file__)!r}")
 
-    if not os.path.isdir(app_context.data_path):
+    if app_context.data_path and not os.path.isdir(app_context.data_path):
         logger.warning(f"Data path {app_context.data_path!r} does not exist, creating it now...")
         os.makedirs(app_context.data_path, exist_ok=True)
 
-    if not os.path.isdir(app_context.metadata_path):
+    if app_context.metadata_path and not os.path.isdir(app_context.metadata_path):
         logger.warning(f"Metadata path {app_context.metadata_path!r} does not exist, creating it now...")
         os.makedirs(app_context.metadata_path, exist_ok=True)
 
@@ -103,52 +108,81 @@ def main(
         ignore_etag = True
         local_cache_ttl = 0
 
-    results_queue_process = Process(target=results_queue_processor, args=(results_queue,))
+    result_queue = Manager().Queue()
+    results_queue_process = Process(target=results_queue_processor, args=(result_queue,))
     results_queue_process.start()
 
-    with Pool(
-        processes=processes, initializer=results_queue_initialize, initargs=(results_queue,)
-    ) as multiprocessing_pool:
-        prefix_chunks = iterable_chunker(
-            iterable=hex_sequence(hex_first=first_hash[0:5], hex_last=last_hash[0:5]), size=chunk_size
-        )
-
-        multiprocessing_pool.starmap(
-            pwnedpasswords_get_and_store_asyncio_run,
-            zip(
-                prefix_chunks,
-                repeat(hash_type),
-                repeat(os.path.join(app_context.data_path, hash_type.value)),  # data_path
-                repeat(os.path.join(app_context.metadata_path, hash_type.value)),  # metadata_path
-                repeat(ENCODING_TYPE),  # encoding_type: read comments in __init__ before wanting Brotli
-                repeat(ignore_etag),
-                repeat(local_cache_ttl),
-                repeat(logger),
-            ),
-        )
-
-        multiprocessing_pool.close()
-        multiprocessing_pool.join()
-        results_queue.put(results_queue_exit_sentinel)
-
-    results_queue_process.join()
-
-
-def pwnedpasswords_get_and_store_asyncio_run(*args):
-    asyncio.run(pwnedpasswords_get_and_store_gather(*args))
-
-
-async def pwnedpasswords_get_and_store_gather(*args) -> None:
-    """
-    Gather the async tasks to get pwnedpasswords per prefix-chunk item
-     - First arg is the list of prefixes in this chunk
-     - Last arg is the results_queue
-    """
-    prefixes = args[0]
-    metadata_results = await asyncio.gather(
-        *[pwnedpasswords_get_and_store_async(prefix, *args[1:-1]) for prefix in prefixes],
+    work_queue: Queue = Queue()
+    worker_args = WorkerArgs(
+        hash_type=hash_type,
+        data_path=Path(os.path.join(app_context.data_path, hash_type.value)),  # type: ignore[arg-type]
+        metadata_path=Path(os.path.join(app_context.metadata_path, hash_type.value)),  # type: ignore[arg-type]
+        encoding_type=ENCODING_TYPE,
+        ignore_etag=ignore_etag,
+        local_cache_ttl=local_cache_ttl,
     )
-    results_queue.put(metadata_results)
+
+    worker_processes = start_worker_processes(
+        work_queue=work_queue, result_queue=result_queue, worker_count=number_of_workers, worker_args=worker_args
+    )
+    enqueue_worker_tasks(
+        first_hash, last_hash, worker_count=len(worker_processes), queue=work_queue, chunk_size=chunk_size
+    )
+
+    logger.info(f"Created {len(worker_processes)} worker processes to consume a queue of prefix-hash values.")
+
+    for i, worker_process in enumerate(worker_processes):
+        worker_process.join()
+        logger.debug(f"Queue worker process {i} finished.")
+
+    result_queue.put(QUEUE_WORKER_EXIT_SENTINEL)
+    results_queue_process.join()
+    logger.info("Done")
+
+
+def enqueue_worker_tasks(
+    first_hash: str, last_hash: str, worker_count: int, queue: Queue, chunk_size: int = 10
+) -> None:
+    prefix_chunks = iterable_chunker(
+        iterable=hex_sequence(hex_first=first_hash[0:5], hex_last=last_hash[0:5]), size=chunk_size
+    )
+
+    for prefix_chunk in prefix_chunks:
+        queue.put(prefix_chunk)
+
+    for _ in range(0, worker_count):
+        queue.put(QUEUE_WORKER_EXIT_SENTINEL)
+
+
+def start_worker_processes(
+    work_queue: Queue, result_queue: Any, worker_count: int, worker_args: WorkerArgs
+) -> List[Process]:
+    worker_processes = []
+    for worker_index in range(0, worker_count):
+        worker_process = Process(
+            target=queue_worker_process, args=(work_queue, result_queue, worker_index, worker_args)
+        )
+        worker_process.daemon = True
+        worker_process.start()
+        worker_processes.append(worker_process)
+
+    return worker_processes
+
+
+def queue_worker_process(work_queue: Queue, result_queue: Queue, worker_index: int, worker_args: WorkerArgs):
+    while True:
+        hash_prefixes = work_queue.get()
+        if hash_prefixes == QUEUE_WORKER_EXIT_SENTINEL:
+            break
+        worker_args.worker_index = worker_index
+        asyncio.run(pwnedpasswords_get_store_gather(result_queue, hash_prefixes, worker_args))
+
+
+async def pwnedpasswords_get_store_gather(result_queue: Queue, hash_prefixes: tuple, worker_args: WorkerArgs) -> None:
+    metadata_results = await asyncio.gather(
+        *[pwnedpasswords_get_and_store_async(hash_prefix, **worker_args.as_dict()) for hash_prefix in hash_prefixes],
+    )
+    result_queue.put(metadata_results)
 
 
 async def pwnedpasswords_get_and_store_async(
@@ -159,45 +193,47 @@ async def pwnedpasswords_get_and_store_async(
     encoding_type: str,
     ignore_etag: bool,
     local_cache_ttl: int,
-    logger_: logger = None,
-):
+    worker_index: int,
+) -> PrefixMetadata:
+    logger_ = logger_get(name=LOGGER_NAME)
     start_timestamp = datetime.now().astimezone()
 
-    if not logger_:
-        logger_ = logger_get(name=None)
-
     logger_.debug(
-        f"{prefix=} hash_type='{hash_type.value}' {encoding_type=} {ignore_etag=} {local_cache_ttl=} {start_timestamp=}"
+        f"{worker_index=} {prefix=} hash_type='{hash_type.value}' {encoding_type=} "
+        f"{ignore_etag=} {local_cache_ttl=} start_timestamp={str(start_timestamp)}"
     )
 
+    datafile_suffix = encoding_type_file_suffix(encoding_type)
+
     # get existing metadata if available
-    metadata = await load_metadata(metadata_path=metadata_path, prefix=prefix)
+    metadata_existing = await load_metadata(
+        prefix=prefix, metadata_path=metadata_path, data_path=data_path, datafile_suffix=datafile_suffix
+    )
 
     etag = None
-    if metadata.data_source:
-        if metadata.server_timestamp:
-            local_ttl = local_cache_ttl - (datetime.now().astimezone() - metadata.server_timestamp).seconds
+    if metadata_existing.data_source:
+        if metadata_existing.server_timestamp:
+            local_ttl = (
+                local_cache_ttl - (datetime.now().astimezone() - metadata_existing.server_timestamp).seconds  # type: ignore[operator]
+            )
             if local_ttl > 0:
                 logger_.debug(f"Skipping {prefix}; local-cache has {local_ttl} time-to-live")
-                return PrefixMetadata(
-                    prefix=prefix,
-                    data_source=PrefixMetadataDataSource.local_source_ttl_cache,
-                    start_timestamp=start_timestamp,
-                )
+                metadata_existing.data_source = PrefixMetadataDataSource.local_source_ttl_cache
+                metadata_existing.start_timestamp = start_timestamp
+                return metadata_existing
         if not ignore_etag:
-            etag = metadata.etag
+            etag = metadata_existing.etag
 
     # download with etag setting
-    binary, metadata = await pwnedpasswords_get(prefix, hash_type=hash_type, etag=etag, encoding=encoding_type)
-    metadata.start_timestamp = start_timestamp
+    binary, metadata_latest = await pwnedpasswords_get(prefix, hash_type=hash_type, etag=etag, encoding=encoding_type)
+    metadata_latest.start_timestamp = start_timestamp
 
-    # filename suffix based on encoding
-    if encoding_type is None or encoding_type.lower() == "identity":
-        filename_suffix = "txt"
-    elif encoding_type.lower() == "gzip" or encoding_type.lower() == "gz":
-        filename_suffix = "gz"  # extension makes shell command completion for zcat, zgrep and others work nicely
-    else:
-        filename_suffix = encoding_type.lower()
+    metadata = metadata_existing
+    for attr_name in dir(metadata_latest):
+        if not callable(getattr(metadata_latest, attr_name)) and not str(attr_name).startswith("_"):
+            value = getattr(metadata_latest, attr_name)
+            if value:
+                setattr(metadata, attr_name, value)
 
     # save
     if binary:
@@ -205,7 +241,7 @@ async def pwnedpasswords_get_and_store_async(
             data_path=data_path,
             prefix=prefix,
             content=binary,
-            filename_suffix=filename_suffix,
+            filename_suffix=datafile_suffix,
             timestamp=metadata.last_modified,
         )
 
@@ -218,7 +254,13 @@ async def pwnedpasswords_get_and_store_async(
     return metadata
 
 
-async def pwnedpasswords_get(prefix: str, hash_type: HashType, etag: str, encoding: str, httpx_debug: bool = False):
+async def pwnedpasswords_get(
+    prefix: str,
+    hash_type: HashType,
+    etag: Union[str, None],
+    encoding: str,
+    httpx_debug: bool = False,
+):
     url = f"{PWNEDPASSWORDS_API_URL}/range/{prefix}"
     if hash_type == HashType.ntlm:
         url += "?mode=ntlm"
@@ -252,17 +294,12 @@ async def pwnedpasswords_get(prefix: str, hash_type: HashType, etag: str, encodi
     return response.binary, metadata
 
 
-def results_queue_initialize(q):
-    global results_queue
-    results_queue = q
-
-
 def results_queue_processor(q: Queue):
     running_stats = QueueRunningStats()
 
     while True:
         metadata_items = q.get()
-        if metadata_items == results_queue_exit_sentinel:
+        if metadata_items == QUEUE_WORKER_EXIT_SENTINEL:
             running_stats.end_trigger()
             logger.info(f"Finished in {round(running_stats.run_time/60,1)}min")
             break
@@ -278,11 +315,11 @@ def results_queue_processor(q: Queue):
                 f"rc:{running_stats.remote_source_remote_cache_count_sum} "
                 f"ro:{running_stats.remote_source_origin_source_count_sum} "
                 f"xx:{running_stats.unknown_source_status_count_sum}] "
-                f"runtime_rate=[{to_mbytes(running_stats.bytes_received_rate_total * 8, 1)}MBit/s "
-                f"{int(running_stats.request_rate_total)}req/s "
-                f"~{int(running_stats.bytes_received_rate_total / APPROX_GZIP_BYTES_PER_HASH)}H/s] "
-                f"runtime={round(running_stats.run_time/60,1)}min "
-                f"download={to_mbytes(running_stats.bytes_received_sum, 1)}MB"
+                f"processed=[{to_mbytes(running_stats.bytes_processed_sum, 1)}MB "
+                f"~{int(running_stats.bytes_processed_rate_total / APPROX_GZIP_BYTES_PER_HASH)}H/s] "
+                f"api=[{int(running_stats.request_rate_total)}req/s "
+                f"{to_mbytes(running_stats.bytes_received_sum, 1)}MB] "
+                f"runtime={round(running_stats.run_time/60,1)}min"
             )
 
 

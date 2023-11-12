@@ -64,13 +64,14 @@ def logger_get(
     return logger
 
 
-def logger_setlevel(name: str, loglevel: str) -> logging.Logger:
+def logger_setlevel(name: str, loglevel: str) -> Union[logging.Logger, LoggerNone]:
     logger = logger_get(name)
     logging_level = __logger_level_int(loglevel)
 
     logger.setLevel(logging_level)
-    for handler in logger.handlers:
-        handler.setLevel(logging_level)
+    if isinstance(logger.handlers, list):
+        for handler in logger.handlers:
+            handler.setLevel(logging_level)
 
     return logger
 

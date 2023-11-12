@@ -26,8 +26,12 @@ def main(
     ],
     hash_type: Annotated[
         HashType,
-        typer.Option(help="Hash type to use from the --data-path", case_sensitive=False),
-    ] = HashType.sha1.value,
+        typer.Option(
+            "--hash-type",
+            help="Hash type to use from the --data-path",
+            case_sensitive=False,
+        ),
+    ] = HashType.sha1,
     first_hash: Annotated[
         str,
         typer.Option(help="Start the generator from a specific hash prefix; trimmed to the first 5 characters"),
@@ -43,11 +47,11 @@ def main(
 
     logger.debug(f"Starting command {app_context.command!r} from {os.path.basename(__file__)!r}")
 
-    if not os.path.isdir(app_context.data_path):
+    if app_context.data_path and not os.path.isdir(app_context.data_path):
         logger.error(f"Data path {app_context.data_path!r} does not exist, unable to continue")
         raise typer.Exit(1)
 
-    if not os.path.isdir(app_context.metadata_path):
+    if app_context.metadata_path and not os.path.isdir(app_context.metadata_path):
         logger.warning(f"Metadata path {app_context.metadata_path!r} does not exist, unable to continue")
         raise typer.Exit(1)
 

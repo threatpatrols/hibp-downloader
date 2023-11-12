@@ -21,7 +21,7 @@ class PrefixMetadata:
     start_timestamp: Union[datetime, None] = field(default=None)
     hash_type: Union[HashType, None] = field(default=None)
     etag: Union[str, None] = field(default=None)
-    bytes: Union[int, None] = field(default=0)
+    bytes: Union[int, None] = field(default=None)
     server_timestamp: Union[str, datetime, None] = field(default=None)
     last_modified: Union[str, datetime, None] = field(default=None)
     content_encoding: Union[str, None] = field(default=None)

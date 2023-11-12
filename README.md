@@ -7,18 +7,19 @@
 [![license](https://img.shields.io/github/license/threatpatrols/hibp-downloader.svg)](https://github.com/threatpatrols/hibp-downloader)
 
 This is a CLI tool to efficiently download a local copy of the pwned password hash data from the very awesome
-[HIBP](https://haveibeenpwned.com/Passwords) pwned passwords [api-endpoint](https://api.pwnedpasswords.com) using 
+[HIBP](https://haveibeenpwned.com/Passwords) pwned passwords [api-endpoint](https://api.pwnedpasswords.com) using all the good bits;
 multiprocessing, async-processes, local-caching, content-etags and http2-connection pooling to make things as fast 
-as (seems) Pythonly possible.
+as is Pythonly possible.
 
 ## Features
 
- - Only download hash-prefix content blocks when the hash-prefix block content has changed (via content ETAG values).
- - Running a `download` on an existing `--data-path` only downloads the new hash-prefix content objects. 
- - Start, stop and re-start the data-collection process without loss of data already collected.
- - Ability to query clear text values and return results from the pwned password data set.
- - Generate a single text file with pwned password hash values in-order, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from the HIBP team.
- - Per prefix file metadata in JSON format for easy data reuse.
+ - Easily resume interrupted `download` operations into a `--data-path` without re-clobbering api-source.
+ - Only download hash-prefix content blocks when the source content has changed (via content ETAG values); thus making 
+   it easy to periodically re-sync when needed.
+ - Ability to directly `query` for compromised password values from the data in-place; efficient enough to attach a 
+   service with reasonable loads.
+ - Ability to generate a single text file with in-order pwned password hash values, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from the HIBP team.
+ - Per prefix file metadata in JSON format for easy data reuse by other tooling if required.
 
 ## Install
 ```commandline
@@ -31,15 +32,21 @@ pip install --upgrade hibp-downloader
 ## Performance
 Sample download activity log; host with 12 cores on 45Mbit/s DSL connection. 
 ```text
-2023-07-31T03:22:45+1000 | INFO | hibp-downloader | prefix=e585f source=[lc:265201 et:0 rc:722148 ro:3 xx:0] runtime_rate=[11.2MBit/s 86req/s ~71005H/s] runtime=2.33hr download=11748.0MB
-2023-07-31T03:22:48+1000 | INFO | hibp-downloader | prefix=e5877 source=[lc:265201 et:0 rc:722268 ro:3 xx:0] runtime_rate=[11.2MBit/s 86req/s ~70998H/s] runtime=2.33hr download=11750.0MB
-2023-07-31T03:22:50+1000 | INFO | hibp-downloader | prefix=f5837 source=[lc:265201 et:0 rc:722388 ro:3 xx:0] runtime_rate=[11.2MBit/s 86req/s ~70992H/s] runtime=2.33hr download=11751.9MB
+2023-11-12T21:25:08+1000 | INFO | hibp-downloader | prefix=00ec3 source=[lc:10 et:2 rc:3800 ro:0 xx:0] processed=[62.0MB ~43589H/s] api=[105req/s 60.0MB] runtime=1.2min
+2023-11-12T21:25:09+1000 | INFO | hibp-downloader | prefix=00eff source=[lc:10 et:2 rc:3850 ro:0 xx:0] processed=[62.8MB ~43547H/s] api=[105req/s 60.8MB] runtime=1.2min
+2023-11-12T21:25:10+1000 | INFO | hibp-downloader | prefix=00f3b source=[lc:10 et:2 rc:3900 ro:0 xx:0] processed=[63.7MB ~43528H/s] api=[105req/s 61.7MB] runtime=1.2min
+2023-11-12T21:25:11+1000 | INFO | hibp-downloader | prefix=00f6d source=[lc:10 et:2 rc:3950 ro:0 xx:0] processed=[64.5MB ~43541H/s] api=[105req/s 62.5MB] runtime=1.3min
 ```
 
- - 86 requests per second to `api.pwnedpasswords.com`
- - 265,201 prefix files from (`lc`) local-cache; 722,388 from (`rc`) remote-cache; 3 from (`ro`) remote-origin; 0 failed (`xx`) download
- - estimated ~70k hash values downloaded per second
- - 11.5GB (11,751MB) downloaded in 2.3 hours (full dataset is ~3.5 hours)
+ - 105x requests per second to `api.pwnedpasswords.com`
+ - Log sources are shorthand:
+     - `lc`: 10x prefix files from local-cache
+     - `et`: 2x etag-match responses
+     - `rc`: 3950x from remote-cache
+     - `ro`: 0x from remote-origin
+     - `xx`: 0x failed download
+ - 62MB downloaded in ~75 seconds
+ - Approx ~43k hash values per second
 
 ## Project
 

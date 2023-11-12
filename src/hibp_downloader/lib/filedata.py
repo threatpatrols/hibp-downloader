@@ -28,8 +28,11 @@ async def save_bytesfile(pathname: str, filename: str, content: bytes, timestamp
 
 
 async def save_datafile(
-    data_path: str, prefix: str, content: bytes, filename_suffix: str, timestamp: Union[datetime, None] = None
+    data_path: str, prefix: str, content: bytes, filename_suffix: str, timestamp: Union[str, datetime, None] = None
 ) -> None:
+    if isinstance(timestamp, str):
+        timestamp = datetime.fromisoformat(timestamp)
+
     await save_bytesfile(
         pathname=os.path.join(data_path, prefix[0:2], prefix[2:4]),
         filename=f"{prefix}.{filename_suffix}",
@@ -82,12 +85,12 @@ async def load_datafile(
     return "\n".join(data_lines)
 
 
-async def load_metadata(metadata_path: str, prefix: str) -> PrefixMetadata:
-    filename = os.path.join(metadata_path, prefix[0:2], prefix[2:4], f"{prefix}.meta")
+async def load_metadata(prefix: str, metadata_path: str, data_path: str, datafile_suffix="gz") -> PrefixMetadata:
+    metadata_file = os.path.join(metadata_path, prefix[0:2], prefix[2:4], f"{prefix}.meta")
 
     content = None
-    if await aiofiles.os.path.isfile(filename):
-        async with aiofiles.open(filename, "r") as f:
+    if await aiofiles.os.path.isfile(metadata_file):
+        async with aiofiles.open(metadata_file, "r") as f:
             content = await f.read()
 
     if not content:
@@ -103,4 +106,18 @@ async def load_metadata(metadata_path: str, prefix: str) -> PrefixMetadata:
     if isinstance(prefix_metadata.last_modified, str):
         prefix_metadata.last_modified = datetime.fromisoformat(prefix_metadata.last_modified)
 
+    if not prefix_metadata.bytes or prefix_metadata.bytes < 1:
+        data_file = os.path.join(data_path, prefix[0:2], prefix[2:4], f"{prefix}.{datafile_suffix}")
+        if os.path.isfile(data_file):
+            prefix_metadata.bytes = os.path.getsize(data_file)
+
     return prefix_metadata
+
+
+def encoding_type_file_suffix(encoding_type: str):
+    if encoding_type is None or encoding_type.lower() == "identity":
+        return "txt"
+    elif encoding_type.lower() == "gzip" or encoding_type.lower() == "gz":
+        return "gz"  # extension makes shell command completion for zcat, zgrep and others work nicely
+
+    return encoding_type.lower()

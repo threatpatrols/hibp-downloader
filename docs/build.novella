@@ -6,8 +6,10 @@ template "mkdocs" {
 action "mkdocs-update-config" {
     site_name = "HIBP Downloader"
     update '$.theme.features' add: ['navigation.sections']
-    update '$.theme.palette' add: {'scheme': 'default', 'primary': 'red'}
     update '$.theme.features' add: ['content.code.copy']
+    update '$.theme.palette' add: {'scheme': 'default', 'primary': 'red'}
+    update '$.theme.icon' add: {'logo': 'octicons/passkey-fill-24'}
+    update '$.theme' add: {'favicon': 'assets/passkey-fill-128x128.png'}
 }
 
 action "preprocess-markdown" {
