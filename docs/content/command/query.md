@@ -7,9 +7,10 @@ and store the dataset in a database.
 The lookup is fast and efficient.
 
 This is achieved by -
- * (a) taking a sha1/ntlm hash of the user supplied password
- * (b) using this to determine the local compressed content-file this password should exist in if it does exist at all 
- * (c) decompress the hash-prefix content file and seek the actual hash.
+
+ * taking a sha1/ntlm hash of the user supplied password
+ * using this to determine the local compressed content-file this password should exist in if it does exist at all 
+ * decompress the hash-prefix content file and seek the actual hash.
 
 This process is quite efficient in its own right and can support decent-enough queries per second such
 that you likely do not need to implement a database to have a service query this dataset.  Consider the `--quiet`
