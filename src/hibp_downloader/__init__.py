@@ -17,7 +17,7 @@ LOCAL_CACHE_TTL_DEFAULT = 12 * 3600
 MULTIPROCESSING_PROCESSES_DEFAULT = int(cpu_count() if cpu_count() else 4)  # type: ignore[arg-type]
 MULTIPROCESSING_PREFIXES_CHUNK_SIZE = 10
 APPROX_GZIP_BYTES_PER_HASH = 20.674
-LOGGING_INFO_EVENT_MODULUS = 5
+LOGGING_INFO_EVENT_MODULUS = 25
 
 # encoding_type
 # The encoded response-content is stored as-is without trying to decode (ie decompress) it into a new encoding type

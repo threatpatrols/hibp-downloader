@@ -29,6 +29,7 @@ hibp-downloader = "hibp_downloader.main:entrypoint"
 [tool.poetry.dependencies]
 python = "^3.8"
 "httpx[http2]" = "^0.25"        # https://pypi.org/project/httpx/#history
+httpcore = ">=0.17.2"           # https://pypi.org/project/httpcore/#history
 "typer[all]" = "^0.9"           # https://pypi.org/project/typer/#history
 shellingham = "^1.5"            # https://pypi.org/project/shellingham/#history
 aiofiles = "^23.0"              # https://pypi.org/project/aiofiles/#history
