@@ -1,8 +1,8 @@
 import os
 from uuid import uuid4
 
-from ..helpers.exec_helpers import exec_command
 from ..helpers.content_inspect import is_match_error_warn
+from ..helpers.exec_helpers import exec_command
 
 
 def test_exec_generate():

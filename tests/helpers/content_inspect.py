@@ -1,4 +1,3 @@
-
 from typing import List
 
 
@@ -7,7 +6,6 @@ def is_match_error_warn(content: str, match_excludes: List[str]) -> bool:
 
 
 def is_match_strings(content: str, match_strings: List[str], match_excludes: List[str]) -> bool:
-
     for content_line in content.split("\n"):
         for match_string in match_strings:
             if match_string in content_line:
