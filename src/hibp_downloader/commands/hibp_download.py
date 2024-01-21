@@ -311,7 +311,7 @@ def results_queue_processor(q: Queue):
         metadata_items = q.get()
         if metadata_items == QUEUE_WORKER_EXIT_SENTINEL:
             running_stats.end_trigger()
-            logger.info(f"Finished in {round(running_stats.run_time/60,1)}min")
+            logger.info(f"Finished in {round(running_stats.run_time / 60, 1)}min")
             break
 
         if metadata_items:
@@ -329,7 +329,7 @@ def results_queue_processor(q: Queue):
                 f"~{int(running_stats.bytes_processed_rate_total / APPROX_GZIP_BYTES_PER_HASH)}H/s] "
                 f"api=[{int(running_stats.request_rate_total)}req/s "
                 f"{to_mbytes(running_stats.bytes_received_sum, 1)}MB] "
-                f"runtime={round(running_stats.run_time/60,1)}min"
+                f"runtime={round(running_stats.run_time / 60, 1)}min"
             )
 
 
