@@ -10,8 +10,8 @@ def test_exec_help_output01():
 
     stdout, stderr, rc = exec_command("hibp-downloader", args=args)
 
-    assert "--data-path" in stdout.decode()
-    assert "--metadata-path" not in stdout.decode()
+    assert "-data" in stdout.decode()
+    assert "-metadata" not in stdout.decode()
 
 
 def test_exec_help_output02():
@@ -24,5 +24,5 @@ def test_exec_help_output02():
 
     stdout, stderr, rc = exec_command("hibp-downloader", args=args)
 
-    assert "--data-path" in stdout.decode()
-    assert "--metadata-path" in stdout.decode()
+    assert "-data" in stdout.decode()
+    assert "-metadata" in stdout.decode()
