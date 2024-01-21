@@ -13,6 +13,7 @@ __version__ = "0.2.1"
 
 LOGGER_NAME = "hibp-downloader"
 PWNEDPASSWORDS_API_URL = "https://api.pwnedpasswords.com"
+HTTPX_TIMEOUT_SECONDS = 30
 LOCAL_CACHE_TTL_DEFAULT = 12 * 3600
 MULTIPROCESSING_PROCESSES_DEFAULT = int(cpu_count() if cpu_count() else 4)  # type: ignore[arg-type]
 MULTIPROCESSING_PREFIXES_CHUNK_SIZE = 10

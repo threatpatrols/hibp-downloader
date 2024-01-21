@@ -24,7 +24,7 @@ def generate_filepath(
 ) -> Path:
     return Path(
         os.path.join(
-            base_path,
+            os.path.expanduser(base_path),
             hash_type.lower(),
             prefix[0:2].lower(),
             prefix[2:4].lower(),
@@ -42,12 +42,13 @@ async def append_stringfile(filepath: Path, content: str) -> None:
 
 
 async def save_bytesfile(filepath: Path, content: bytes, timestamp: Union[datetime, None] = None) -> None:
-    await aiofiles.os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    async with aiofiles.open(filepath, mode="wb") as f:
+    full_path = os.path.realpath(os.path.expanduser(filepath))
+    await aiofiles.os.makedirs(os.path.dirname(full_path), exist_ok=True)
+    async with aiofiles.open(full_path, mode="wb") as f:
         await f.write(content)
 
     if timestamp:
-        os.utime(filepath, times=(timestamp.timestamp(), timestamp.timestamp()))
+        os.utime(full_path, times=(timestamp.timestamp(), timestamp.timestamp()))
 
 
 async def save_datafile(
