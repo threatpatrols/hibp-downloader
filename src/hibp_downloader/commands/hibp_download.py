@@ -75,9 +75,11 @@ def main(
             help="Number of hash-prefixes to consume (asynchronously) per iteration per process",
         ),
     ] = MULTIPROCESSING_PREFIXES_CHUNK_SIZE,
-    force: Annotated[bool, typer.Option(help="Same as setting --local_cache_ttl=0 and --ignore-etag")] = False,
+    force: Annotated[
+        bool, typer.Option("--force", help="Same as setting --local_cache_ttl=0 and --ignore-etag")
+    ] = False,
     ignore_etag: Annotated[
-        bool, typer.Option(help="Do not use request etag headers to manage local/remote cached data")
+        bool, typer.Option("--ignore-etag", help="Do not use request etag headers to manage local/remote cached data")
     ] = False,
     local_cache_ttl: Annotated[
         int,
@@ -115,8 +117,8 @@ def main(
     work_queue: Queue = Queue()
     worker_args = WorkerArgs(
         hash_type=hash_type,
-        data_path=Path(os.path.join(app_context.data_path, hash_type.value)),  # type: ignore[arg-type]
-        metadata_path=Path(os.path.join(app_context.metadata_path, hash_type.value)),  # type: ignore[arg-type]
+        data_path=app_context.data_path,  # type: ignore[arg-type]
+        metadata_path=app_context.metadata_path,  # type: ignore[arg-type]
         encoding_type=ENCODING_TYPE,
         ignore_etag=ignore_etag,
         local_cache_ttl=local_cache_ttl,
@@ -188,8 +190,8 @@ async def pwnedpasswords_get_store_gather(result_queue: Queue, hash_prefixes: tu
 async def pwnedpasswords_get_and_store_async(
     prefix: str,
     hash_type: HashType,
-    data_path: str,
-    metadata_path: str,
+    data_path: Path,
+    metadata_path: Path,
     encoding_type: str,
     ignore_etag: bool,
     local_cache_ttl: int,
@@ -207,8 +209,15 @@ async def pwnedpasswords_get_and_store_async(
 
     # get existing metadata if available
     metadata_existing = await load_metadata(
-        prefix=prefix, metadata_path=metadata_path, data_path=data_path, datafile_suffix=datafile_suffix
+        metadata_path=metadata_path,
+        data_path=data_path,
+        prefix=prefix,
+        hash_type=hash_type.value,
+        datafile_suffix=datafile_suffix,
     )
+
+    if not metadata_existing:
+        logger.debug(f"No existing metadata, will generate new metadata for {prefix!r}")
 
     etag = None
     if metadata_existing.data_source:
@@ -239,6 +248,7 @@ async def pwnedpasswords_get_and_store_async(
     if binary:
         await save_datafile(
             data_path=data_path,
+            hash_type=hash_type,
             prefix=prefix,
             content=binary,
             filename_suffix=datafile_suffix,
@@ -249,7 +259,7 @@ async def pwnedpasswords_get_and_store_async(
         PrefixMetadataDataSource.local_source_ttl_cache,
         PrefixMetadataDataSource.unknown_source_status,
     ):
-        await save_metadatafile(metadata_path=metadata_path, prefix=prefix, metadata=metadata)
+        await save_metadatafile(metadata_path=metadata_path, hash_type=hash_type, prefix=prefix, metadata=metadata)
 
     return metadata
 
@@ -284,7 +294,7 @@ async def pwnedpasswords_get(
     if response.status_code == 304:  # HTTP 304 Not Modified status
         metadata.data_source = PrefixMetadataDataSource.local_source_etag_match
     elif response.status_code == 200:
-        if response.headers.get("cf-cache-status").upper() == "HIT":
+        if response.headers.get("cf-cache-status").upper() == "HIT":  # Fragile: relies on HIBP hosted via Cloudflare
             metadata.data_source = PrefixMetadataDataSource.remote_source_remote_cache
         else:
             metadata.data_source = PrefixMetadataDataSource.remote_source_origin_source
@@ -301,7 +311,7 @@ def results_queue_processor(q: Queue):
         metadata_items = q.get()
         if metadata_items == QUEUE_WORKER_EXIT_SENTINEL:
             running_stats.end_trigger()
-            logger.info(f"Finished in {round(running_stats.run_time/60,1)}min")
+            logger.info(f"Finished in {round(running_stats.run_time / 60, 1)}min")
             break
 
         if metadata_items:
@@ -319,7 +329,7 @@ def results_queue_processor(q: Queue):
                 f"~{int(running_stats.bytes_processed_rate_total / APPROX_GZIP_BYTES_PER_HASH)}H/s] "
                 f"api=[{int(running_stats.request_rate_total)}req/s "
                 f"{to_mbytes(running_stats.bytes_received_sum, 1)}MB] "
-                f"runtime={round(running_stats.run_time/60,1)}min"
+                f"runtime={round(running_stats.run_time / 60, 1)}min"
             )
 
 

@@ -26,7 +26,8 @@ def main(
         typer.Option(
             prompt=True,
             hide_input=True,
-            help="Cleartext password string to query the local data store",
+            help="Cleartext password string to query the --data-path content; prompts for hidden STDIN if not "
+            "supplied as CLI option.",
             envvar="HIBPDL_PASSWORD",
         ),
     ],
@@ -84,10 +85,11 @@ async def pwnedpasswords_query_datastore(password_hashed: str, hash_type: HashTy
     }
 
     try:
-        source_data = await load_datafile(
-            data_path=os.path.join(app_context.data_path, hash_type),  # type: ignore[arg-type]
+        datafile_content, datafile_filepath = await load_datafile(
+            data_path=app_context.data_path,  # type: ignore[arg-type]
+            hash_type=hash_type,
             prefix=prefix,
-            filename_suffix=filename_suffix,
+            datafile_suffix=filename_suffix,
             decompression_type=decompression_mode,
             prepend_prefix=True,
         )
@@ -95,7 +97,10 @@ async def pwnedpasswords_query_datastore(password_hashed: str, hash_type: HashTy
         result["status"] = str(e)
         return stdout_json(result)
 
-    for line in source_data.split("\n"):
+    if datafile_filepath:
+        result["data_file"] = str(datafile_filepath)
+
+    for line in datafile_content.split("\n"):
         if password_hashed.upper() in line:
             line_parts = line.split(":")
             if len(line_parts) >= 2:

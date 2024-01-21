@@ -48,14 +48,17 @@ def main(
             help="Path where metadata is saved; by default both data and metadata are saved in the same --data-path",
             envvar="HIBPDL_METADATA_PATH",
             show_envvar=False,
+            hidden=False if app_context.debug else True,
         ),
     ] = "",
     debug: Annotated[
-        bool, typer.Option(help="Set logging to debug-level messages", envvar="HIBPDL_DEBUG", show_envvar=False)
+        bool,
+        typer.Option("--debug", help="Set logging to debug-level messages", envvar="HIBPDL_DEBUG", show_envvar=False),
     ] = False,
     quiet: Annotated[
         bool,
         typer.Option(
+            "--quiet",
             help="Set logging to fatal-level messages; overrides --debug option",
             envvar="HIBPDL_QUIET",
             show_envvar=False,

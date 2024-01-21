@@ -78,7 +78,7 @@ async def pwnedpasswords_datastore_sorted_gather(filename, hash_type, first_hash
         output = ""
         for k, v in dict(sorted({k: v for d in results for k, v in d.items()}.items())).items():
             output = f"{output}\n{v}"
-        await append_stringfile(filename=filename, content=output)
+        await append_stringfile(filepath=filename, content=output)
 
 
 async def pwnedpasswords_datastore_sorted_async(prefix, hash_type):
@@ -88,12 +88,13 @@ async def pwnedpasswords_datastore_sorted_async(prefix, hash_type):
     else:
         raise HibpDownloaderException(f"Unsupported ENCODING_TYPE {ENCODING_TYPE}")
 
-    source_data = await load_datafile(
-        data_path=os.path.join(app_context.data_path, hash_type),
+    datafile_content, datafile_filepath = await load_datafile(
+        data_path=app_context.data_path,
+        hash_type=hash_type,
         prefix=prefix,
-        filename_suffix=filename_suffix,
+        datafile_suffix=filename_suffix,
         decompression_type=decompression_mode,
         prepend_prefix=True,
     )
 
-    return {prefix: source_data}
+    return {prefix: datafile_content, f"{prefix}_datafile": datafile_filepath}
