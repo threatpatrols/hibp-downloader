@@ -2,7 +2,7 @@ import random
 
 import httpx
 
-from hibp_downloader import HTTPX_TIMEOUT_SECONDS, LOGGER_NAME, __title__, __version__
+from hibp_downloader import LOGGER_NAME, __title__, __version__
 from hibp_downloader.exceptions import HibpDownloaderException
 from hibp_downloader.lib.logger import logger_get
 
@@ -24,7 +24,9 @@ async def httpx_debug_response(response):
     )
 
 
-async def httpx_binary_response(url, etag=None, method="GET", encoding="gzip", debug=False):
+async def httpx_binary_response(
+    url, etag=None, method="GET", encoding="gzip", timeout=10, max_retries=3, __attempt=0, debug=False
+):
     event_hooks = {}
     if debug:
         event_hooks["request"] = [httpx_debug_request]
@@ -43,7 +45,7 @@ async def httpx_binary_response(url, etag=None, method="GET", encoding="gzip", d
     httpx_client = {
         "headers": headers,
         "http2": True,
-        "timeout": HTTPX_TIMEOUT_SECONDS,
+        "timeout": timeout,
         "follow_redirects": False,
         "trust_env": False,
     }
@@ -52,14 +54,22 @@ async def httpx_binary_response(url, etag=None, method="GET", encoding="gzip", d
         httpx_client["event_hooks"] = event_hooks
 
     if __TESTING_RANDOM_ERROR_INJECT_RATE and __TESTING_RANDOM_ERROR_INJECT_RATE > random.random():
-        url = url.replace("http", "broken")
+        url = url.replace("http", "BR0KEN")
+        logger.warning(f"Testing, creating broken URL {url}")
 
     async with httpx.AsyncClient(**httpx_client) as client:
+        __attempt += 1
+        logger.debug(f"Request attempt {__attempt} of {max_retries} for {url!r}")
         request = client.build_request(method=method, url=url)
         try:
             response = await client.send(request=request, stream=True)
         except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.HTTPError):
-            raise HibpDownloaderException(f"Unable to establish connection {url}")
+            logger.warning(f"Request [{__attempt} of {max_retries}] failed for {request.method!r} {url!r}")
+            if __attempt < max_retries:
+                return await httpx_binary_response(
+                    url.replace("BR0KEN", "http"), etag, method, encoding, timeout, max_retries, __attempt, debug
+                )
+            raise HibpDownloaderException(f"Request failed after {__attempt} retries: {url!r}")
 
         response.binary = b"".join([part async for part in response.aiter_raw()])
 

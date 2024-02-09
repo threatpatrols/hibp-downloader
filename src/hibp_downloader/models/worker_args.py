@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -11,8 +11,13 @@ class WorkerArgs:
     data_path: Path
     metadata_path: Path
     encoding_type: str
-    ignore_etag: bool = field(default=False)
-    local_cache_ttl: int = field(default=(12 * 3600))
+
+    http_timeout: int
+    http_max_retries: int
+    http_debug: bool
+
+    ignore_etag: bool
+    local_cache_ttl: int
     worker_index: Optional[int] = None
 
     def as_dict(self):

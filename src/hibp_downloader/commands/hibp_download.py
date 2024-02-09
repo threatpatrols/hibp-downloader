@@ -14,10 +14,12 @@ from hibp_downloader import (
     APPROX_GZIP_BYTES_PER_HASH,
     ENCODING_TYPE,
     HELP_EPILOG_FOOTER,
+    HTTP_MAX_RETRIES_DEFAULT,
+    HTTP_TIMEOUT_DEFAULT,
     LOCAL_CACHE_TTL_DEFAULT,
     LOGGER_NAME,
     LOGGING_INFO_EVENT_MODULUS,
-    MULTIPROCESSING_PREFIXES_CHUNK_SIZE,
+    MULTIPROCESSING_PREFIXES_CHUNK_SIZE_DEFAULT,
     MULTIPROCESSING_PROCESSES_DEFAULT,
     PWNEDPASSWORDS_API_URL,
     app_context,
@@ -74,7 +76,7 @@ def main(
         typer.Option(
             help="Number of hash-prefixes to consume (asynchronously) per iteration per process",
         ),
-    ] = MULTIPROCESSING_PREFIXES_CHUNK_SIZE,
+    ] = MULTIPROCESSING_PREFIXES_CHUNK_SIZE_DEFAULT,
     force: Annotated[
         bool, typer.Option("--force", help="Same as setting --local_cache_ttl=0 and --ignore-etag")
     ] = False,
@@ -88,6 +90,14 @@ def main(
             "prevents requesting the same data twice in this period"
         ),
     ] = LOCAL_CACHE_TTL_DEFAULT,
+    http_timeout: Annotated[
+        int,
+        typer.Option(help="HTTP timeout (seconds) per request"),
+    ] = HTTP_TIMEOUT_DEFAULT,
+    http_max_retries: Annotated[
+        int,
+        typer.Option(help="Maximum number of HTTP request retries on request failure"),
+    ] = HTTP_MAX_RETRIES_DEFAULT,
 ):
     """
     Download new pwned password hash data from HIBP and update the local --data-path data storage path; use [bold cyan]download --help[/bold cyan] for more.
@@ -122,6 +132,9 @@ def main(
         encoding_type=ENCODING_TYPE,
         ignore_etag=ignore_etag,
         local_cache_ttl=local_cache_ttl,
+        http_timeout=http_timeout,
+        http_max_retries=http_max_retries,
+        http_debug=False,
     )
 
     worker_processes = start_worker_processes(
@@ -193,6 +206,9 @@ async def pwnedpasswords_get_and_store_async(
     data_path: Path,
     metadata_path: Path,
     encoding_type: str,
+    http_timeout: int,
+    http_max_retries: int,
+    http_debug: bool,
     ignore_etag: bool,
     local_cache_ttl: int,
     worker_index: int,
@@ -202,6 +218,7 @@ async def pwnedpasswords_get_and_store_async(
 
     logger_.debug(
         f"{worker_index=} {prefix=} hash_type='{hash_type.value}' {encoding_type=} "
+        f"{http_timeout=} {http_max_retries=} {http_debug=}"
         f"{ignore_etag=} {local_cache_ttl=} start_timestamp={str(start_timestamp)}"
     )
 
@@ -234,7 +251,15 @@ async def pwnedpasswords_get_and_store_async(
             etag = metadata_existing.etag
 
     # download with etag setting
-    binary, metadata_latest = await pwnedpasswords_get(prefix, hash_type=hash_type, etag=etag, encoding=encoding_type)
+    binary, metadata_latest = await pwnedpasswords_get(
+        prefix,
+        hash_type=hash_type,
+        etag=etag,
+        encoding=encoding_type,
+        http_timeout=http_timeout,
+        http_max_retires=http_max_retries,
+        http_debug=http_debug,
+    )
     metadata_latest.start_timestamp = start_timestamp
 
     metadata = metadata_existing
@@ -269,14 +294,18 @@ async def pwnedpasswords_get(
     hash_type: HashType,
     etag: Union[str, None],
     encoding: str,
-    httpx_debug: bool = False,
+    http_max_retires: int,
+    http_timeout: int,
+    http_debug: bool,
 ):
     url = f"{PWNEDPASSWORDS_API_URL}/range/{prefix}"
     if hash_type == HashType.ntlm:
         url += "?mode=ntlm"
 
     try:
-        response = await httpx_binary_response(url=url, etag=etag, encoding=encoding, debug=httpx_debug)
+        response = await httpx_binary_response(
+            url=url, etag=etag, encoding=encoding, debug=http_debug, max_retries=http_max_retires, timeout=http_timeout
+        )
     except HibpDownloaderException:
         return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
 

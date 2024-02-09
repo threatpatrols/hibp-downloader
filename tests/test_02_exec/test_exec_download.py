@@ -13,7 +13,7 @@ def test_exec_download():
         "--data-path", f"/tmp/hibp-test/{prefix}",
         "download",
         "--first-hash", f"{prefix}0",
-        "--last-hash", f"{prefix}8"
+        "--last-hash", f"{prefix}f"
     ]
     # fmt: on
     stdout, stderr, rc = exec_command("hibp-downloader", args=args)
@@ -37,7 +37,7 @@ def test_exec_download_sha1():
         "--data-path", f"/tmp/hibp-test/{prefix}",
         "download",
         "--first-hash", f"{prefix}0",
-        "--last-hash", f"{prefix}8",
+        "--last-hash", f"{prefix}f",
         "--hash-type", hash_type,
     ]
     # fmt: on
@@ -62,7 +62,7 @@ def test_exec_download_ntlm():
         "--data-path", f"/tmp/hibp-test/{prefix}",
         "download",
         "--first-hash", f"{prefix}0",
-        "--last-hash", f"{prefix}8",
+        "--last-hash", f"{prefix}f",
         "--hash-type", hash_type,
     ]
     # fmt: on
@@ -87,7 +87,7 @@ def test_exec_download_w_metadata_path():
         "--metadata-path", f"/tmp/hibp-test-metadata/{prefix}",
         "download",
         "--first-hash", f"{prefix}0",
-        "--last-hash", f"{prefix}8"
+        "--last-hash", f"{prefix}f"
     ]
     # fmt: on
     stdout, stderr, rc = exec_command("hibp-downloader", args=args)
