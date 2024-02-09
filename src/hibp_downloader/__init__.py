@@ -9,7 +9,7 @@ from .lib.logger import logger_get
 from .models import AppContext
 
 __title__ = "HIBP Downloader"
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 LOGGER_NAME = "hibp-downloader"
 PWNEDPASSWORDS_API_URL = "https://api.pwnedpasswords.com"
