@@ -12,14 +12,16 @@ multiprocessing, async-processes, local-caching, content-etags and http2-connect
 as fast as is Pythonly possible.
 
 ## Features
+ - Interface to directly `query` for compromised password values from the *compressed* file data-store!
+ - Download and store acquired data in gzip'd compressed to save on storage and speed up queries. 
  - Download the full dataset in under 45 mins (generally CPU bound)
  - Easily resume interrupted `download` operations into a `--data-path` without re-clobbering api-source.
  - Only download hash-prefix content blocks when the source content has changed (via content ETAG values); making it 
    easy to periodically sync-up when needed.
- - Download and store acquired data gzip'd compressed to save on storage (and speed up queries!) 
- - Ability to directly `query` for compromised password values from the data in-place, without needing to decompress.
- - Query performance is efficient enough to attach a web-service with reasonable loads (ie don't waste resources by decompressing the dataset into a database for query!)
- - Ability to generate a single text file with in-order pwned password hash values, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from the HIBP team.
+ - Query interface performance is efficient enough to attach a user web-service with reasonable loads (ie don't waste 
+   your own resources decompressing the dataset and storing in a database!)
+ - Ability to generate a single text file with in-order pwned password hash values, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from 
+   the awesome HIBP team.
  - Per prefix file metadata in JSON format for easy data reuse by other tooling if required.
 
 ## Install
@@ -27,7 +29,7 @@ as fast as is Pythonly possible.
 pipx install hibp-downloader
 ```
 
-## Usage
+## Usage (download)
 ![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/content/assets/screenshot-help.png)
 
 ## Performance
@@ -50,6 +52,9 @@ Sample download activity log; host with 32 cores on 500Mbit/s connection.
  - ~17GB downloaded in ~36 minutes (full dataset)
  - Approx ~414k hash values received per second
  - Processing in this example appears to be CPU bound, measured traffic around ~160 Mbit/s.
+
+## Usage (query)
+![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/content/assets/screenshot-query-help.png)
 
 ## Project
 
