@@ -8,45 +8,48 @@
 
 This is a CLI tool to efficiently download a local copy of the pwned password hash data from the very awesome
 [HIBP](https://haveibeenpwned.com/Passwords) pwned passwords [api-endpoint](https://api.pwnedpasswords.com) using all the good bits;
-multiprocessing, async-processes, local-caching, content-etags and http2-connection pooling to make things as fast 
-as is Pythonly possible.
+multiprocessing, async-processes, local-caching, content-etags and http2-connection pooling to probably make things 
+as fast as is Pythonly possible.
 
 ## Features
-
+ - Download the full dataset in under 45 mins (generally CPU bound)
  - Easily resume interrupted `download` operations into a `--data-path` without re-clobbering api-source.
- - Only download hash-prefix content blocks when the source content has changed (via content ETAG values); thus making 
-   it easy to periodically re-sync when needed.
- - Ability to directly `query` for compromised password values from the data in-place; efficient enough to attach a 
-   service with reasonable loads.
+ - Only download hash-prefix content blocks when the source content has changed (via content ETAG values); making it 
+   easy to periodically sync-up when needed.
+ - Download and store acquired data gzip'd compressed to save on storage (and speed up queries!) 
+ - Ability to directly `query` for compromised password values from the data in-place, without needing to decompress.
+ - Query performance is efficient enough to attach a web-service with reasonable loads (ie don't waste resources by decompressing the dataset into a database for query!)
  - Ability to generate a single text file with in-order pwned password hash values, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from the HIBP team.
  - Per prefix file metadata in JSON format for easy data reuse by other tooling if required.
 
 ## Install
 ```commandline
-pip install --upgrade hibp-downloader
+pipx install hibp-downloader
 ```
 
 ## Usage
 ![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/content/assets/screenshot-help.png)
 
 ## Performance
-Sample download activity log; host with 12 cores on 45Mbit/s DSL connection. 
+Sample download activity log; host with 32 cores on 500Mbit/s connection. 
 ```text
-2023-11-12T21:25:08+1000 | INFO | hibp-downloader | prefix=00ec3 source=[lc:10 et:2 rc:3800 ro:0 xx:0] processed=[62.0MB ~43589H/s] api=[105req/s 60.0MB] runtime=1.2min
-2023-11-12T21:25:09+1000 | INFO | hibp-downloader | prefix=00eff source=[lc:10 et:2 rc:3850 ro:0 xx:0] processed=[62.8MB ~43547H/s] api=[105req/s 60.8MB] runtime=1.2min
-2023-11-12T21:25:10+1000 | INFO | hibp-downloader | prefix=00f3b source=[lc:10 et:2 rc:3900 ro:0 xx:0] processed=[63.7MB ~43528H/s] api=[105req/s 61.7MB] runtime=1.2min
-2023-11-12T21:25:11+1000 | INFO | hibp-downloader | prefix=00f6d source=[lc:10 et:2 rc:3950 ro:0 xx:0] processed=[64.5MB ~43541H/s] api=[105req/s 62.5MB] runtime=1.3min
+...
+2024-05-16T10:18:01-0400 | INFO | hibp-downloader | prefix=f80c7 source=[lc:13616 et:3 rc:1002358 ro:25 xx:1] processed=[17836.6MB ~414462H/s] api=[918req/s 17597.4MB] runtime=36.4min
+2024-05-16T10:18:02-0400 | INFO | hibp-downloader | prefix=f81af source=[lc:13616 et:3 rc:1002558 ro:25 xx:1] processed=[17840.1MB ~414454H/s] api=[918req/s 17600.9MB] runtime=36.4min
+2024-05-16T10:18:02-0400 | INFO | hibp-downloader | prefix=f826f source=[lc:13616 et:3 rc:1002758 ro:25 xx:1] processed=[17843.6MB ~414454H/s] api=[918req/s 17604.4MB] runtime=36.4min
+2024-05-16T10:18:03-0400 | INFO | hibp-downloader | prefix=f833f source=[lc:13616 et:3 rc:1002958 ro:25 xx:1] processed=[17847.1MB ~414450H/s] api=[918req/s 17607.9MB] runtime=36.4min
 ```
 
- - 105x requests per second to `api.pwnedpasswords.com`
+ - 918x requests per second to `api.pwnedpasswords.com`
  - Log sources are shorthand:
-     - `lc`: 10x prefix files from local-cache
-     - `et`: 2x etag-match responses
-     - `rc`: 3950x from remote-cache
-     - `ro`: 0x from remote-origin
-     - `xx`: 0x failed download
- - 62MB downloaded in ~75 seconds
- - Approx ~43k hash values per second
+     - `lc`: 13616 from local-cache (lc) - request-responses handled locally without hitting the network. 
+     - `et`: 3 etag-matched (et) - request-responses that confirmed our local data was up-to-date and did not require a new download.
+     - `rc`: 1002958 from remote-cache (rc) - request-responses that were downloaded to local, but came from the remote-server cache.
+     - `ro`: 25 from remote-origin (ro) - request-responses that were downloaded to local, and the download needed to be fetched from remote origin source.
+     - `xx`: 1 failed responses - request-responses that failed (and successfully retried).
+ - ~17GB downloaded in ~36 minutes (full dataset)
+ - Approx ~414k hash values received per second
+ - Processing in this example appears to be CPU bound, measured traffic around ~160 Mbit/s.
 
 ## Project
 
@@ -55,8 +58,8 @@ Sample download activity log; host with 12 cores on 45Mbit/s DSL connection.
  - ReadTheDocs - [hibp-downloader.readthedocs.io](https://hibp-downloader.readthedocs.io)
 
 ## Copyright
- - Copyright &copy; 2023 [Threat Patrols Pty Ltd](https://www.threatpatrols.com)
- - Copyright &copy; 2023 [Nicholas de Jong](https://www.nicholasdejong.com)
+ - Copyright &copy; 2023-2024 [Threat Patrols Pty Ltd](https://www.threatpatrols.com)
+ - Copyright &copy; 2023-2024 [Nicholas de Jong](https://www.nicholasdejong.com)
 
 All rights reserved.
 
