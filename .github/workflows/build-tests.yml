@@ -13,6 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: NiklasRosenstein/slap@gha/install/v1
+      with: { version: "1.12.0" }
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
