@@ -78,7 +78,7 @@ def main(
         ),
     ] = MULTIPROCESSING_PREFIXES_CHUNK_SIZE_DEFAULT,
     force: Annotated[
-        bool, typer.Option("--force", help="Same as setting --local_cache_ttl=0 and --ignore-etag")
+        bool, typer.Option("--force", help="Same as setting --local-cache-ttl=0 and --ignore-etag")
     ] = False,
     ignore_etag: Annotated[
         bool, typer.Option("--ignore-etag", help="Do not use request etag headers to manage local/remote cached data")
