@@ -98,6 +98,14 @@ def main(
         int,
         typer.Option(help="Maximum number of HTTP request retries on request failure"),
     ] = HTTP_MAX_RETRIES_DEFAULT,
+    http_proxy: Annotated[
+        str,
+        typer.Option(help="HTTP proxy"),
+    ] = "",
+    http_verify: Annotated[
+        str,
+        typer.Option(help="Path to cert file to verify SSL connection"),
+    ] = "",
 ):
     """
     Download new pwned password hash data from HIBP and update the local --data-path data storage path; use [bold cyan]download --help[/bold cyan] for more.
@@ -134,6 +142,8 @@ def main(
         local_cache_ttl=local_cache_ttl,
         http_timeout=http_timeout,
         http_max_retries=http_max_retries,
+        http_proxy=http_proxy,
+        http_verify=http_verify,
         http_debug=False,
     )
 
@@ -209,6 +219,8 @@ async def pwnedpasswords_get_and_store_async(
     http_timeout: int,
     http_max_retries: int,
     http_debug: bool,
+    http_proxy: str,
+    http_verify: str,
     ignore_etag: bool,
     local_cache_ttl: int,
     worker_index: int,
@@ -218,7 +230,7 @@ async def pwnedpasswords_get_and_store_async(
 
     logger_.debug(
         f"{worker_index=} {prefix=} hash_type='{hash_type.value}' {encoding_type=} "
-        f"{http_timeout=} {http_max_retries=} {http_debug=}"
+        f"{http_timeout=} {http_max_retries=} {http_debug=} {http_proxy=} {http_verify=}"
         f"{ignore_etag=} {local_cache_ttl=} start_timestamp={str(start_timestamp)}"
     )
 
@@ -259,6 +271,8 @@ async def pwnedpasswords_get_and_store_async(
         http_timeout=http_timeout,
         http_max_retires=http_max_retries,
         http_debug=http_debug,
+        http_proxy=http_proxy,
+        http_verify=http_verify,
     )
     metadata_latest.start_timestamp = start_timestamp
 
@@ -297,6 +311,8 @@ async def pwnedpasswords_get(
     http_max_retires: int,
     http_timeout: int,
     http_debug: bool,
+    http_proxy: str,
+    http_verify: str,
 ):
     url = f"{PWNEDPASSWORDS_API_URL}/range/{prefix}"
     if hash_type == HashType.ntlm:
@@ -304,7 +320,8 @@ async def pwnedpasswords_get(
 
     try:
         response = await httpx_binary_response(
-            url=url, etag=etag, encoding=encoding, debug=http_debug, max_retries=http_max_retires, timeout=http_timeout
+            url=url, etag=etag, encoding=encoding, debug=http_debug, max_retries=http_max_retires, timeout=http_timeout,
+            proxy=http_proxy, verify=http_verify
         )
     except HibpDownloaderException:
         return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
