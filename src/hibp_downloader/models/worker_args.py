@@ -15,7 +15,7 @@ class WorkerArgs:
     http_timeout: int
     http_max_retries: int
     http_proxy: str
-    http_verify: str
+    http_certificates: str
     http_debug: bool
 
     ignore_etag: bool
