@@ -25,7 +25,8 @@ async def httpx_debug_response(response):
 
 
 async def httpx_binary_response(
-    url, etag=None, method="GET", encoding="gzip", timeout=10, max_retries=3, __attempt=0, debug=False
+    url, etag=None, method="GET", encoding="gzip", timeout=10, max_retries=3, proxy="", verify="", __attempt=0,
+        debug=False
 ):
     event_hooks = {}
     if debug:
@@ -50,6 +51,12 @@ async def httpx_binary_response(
         "trust_env": False,
     }
 
+    if not proxy == "":
+        httpx_client["proxy"] = proxy
+
+    if not verify == "":
+        httpx_client["verify"] = verify
+
     if event_hooks:
         httpx_client["event_hooks"] = event_hooks
 
@@ -67,7 +74,8 @@ async def httpx_binary_response(
             logger.warning(f"Request [{__attempt} of {max_retries}] failed for {request.method!r} {url!r}")
             if __attempt < max_retries:
                 return await httpx_binary_response(
-                    url.replace("BR0KEN", "http"), etag, method, encoding, timeout, max_retries, __attempt, debug
+                    url.replace("BR0KEN", "http"), etag, method, encoding, timeout, max_retries, proxy, verify,
+                    __attempt, debug
                 )
             raise HibpDownloaderException(f"Request failed after {__attempt} retries: {url!r}")
 
