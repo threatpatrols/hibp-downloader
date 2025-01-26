@@ -24,8 +24,8 @@ the `--local-cache-ttl` option to adjust this if needed.
 
 The `--force` option is simply a convenience option that sets both `--ignore-etag` and `--local-cache-ttl=0`  
 
-The options `--hash-type`, `--first-hash`, `--last-hash`, `--processes` and `--chunk-size` are described in 
-the application-help and should be self-evident.
+The options `--hash-type`, `--first-hash`, `--last-hash`, `--processes`, `--chunk-size`, `--http-proxy` and
+`--http-certificates` are described in the application-help and should be self-evident how to use.
 
 ## Usage
 ![screenshot-help.png](../assets/screenshot-download-help.png)
