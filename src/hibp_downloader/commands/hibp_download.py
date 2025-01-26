@@ -3,7 +3,6 @@ import hashlib
 import os
 from datetime import datetime
 from multiprocessing import Manager, Process, Queue
-from os import cpu_count
 from pathlib import Path
 from typing import Any, List, Union
 
@@ -65,10 +64,7 @@ def main(
     number_of_workers: Annotated[
         int,
         typer.Option(
-            "--processes",
-            help="Number of parallel processes to use; default value based on host CPU core count",
-            min=1,
-            max=cpu_count(),
+            "--processes", help="Number of parallel processes to use; default value based on host CPU core count", min=1
         ),
     ] = MULTIPROCESSING_PROCESSES_DEFAULT,
     chunk_size: Annotated[

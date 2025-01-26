@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "hibp-downloader"
-version = "0.3.1"
+version = "0.3.2"
 description = "Efficiently download HIBP new pwned password data by hash-prefix for a local-copy"
 authors = ["Nicholas de Jong <contact@threatpatrols.com>"]
 license = "BSD-3-Clause"
