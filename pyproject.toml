@@ -71,7 +71,6 @@ flake8 = "flake8 src/ tests/"
 isort = "isort --check-only src/ tests/"
 mypy = "dmypy run src/"
 pycln  = "pycln src/ tests/ --check"
-safety = "pip freeze | safety check --stdin --short-report --output text"
 pytest = "pytest tests/ -vv"
 
 [tool.slap.run]
