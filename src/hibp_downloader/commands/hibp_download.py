@@ -3,7 +3,6 @@ import hashlib
 import os
 from datetime import datetime
 from multiprocessing import Manager, Process, Queue
-from os import cpu_count
 from pathlib import Path
 from typing import Any, List, Union
 
@@ -65,10 +64,7 @@ def main(
     number_of_workers: Annotated[
         int,
         typer.Option(
-            "--processes",
-            help="Number of parallel processes to use; default value based on host CPU core count",
-            min=1,
-            max=cpu_count(),
+            "--processes", help="Number of parallel processes to use; default value based on host CPU core count", min=1
         ),
     ] = MULTIPROCESSING_PROCESSES_DEFAULT,
     chunk_size: Annotated[
@@ -78,7 +74,7 @@ def main(
         ),
     ] = MULTIPROCESSING_PREFIXES_CHUNK_SIZE_DEFAULT,
     force: Annotated[
-        bool, typer.Option("--force", help="Same as setting --local_cache_ttl=0 and --ignore-etag")
+        bool, typer.Option("--force", help="Same as setting --local-cache-ttl=0 and --ignore-etag")
     ] = False,
     ignore_etag: Annotated[
         bool, typer.Option("--ignore-etag", help="Do not use request etag headers to manage local/remote cached data")
@@ -320,8 +316,14 @@ async def pwnedpasswords_get(
 
     try:
         response = await httpx_binary_response(
-            url=url, etag=etag, encoding=encoding, debug=http_debug, timeout=http_timeout, max_retries=http_max_retires,
-            proxy=http_proxy, verify=http_certificates
+            url=url,
+            etag=etag,
+            encoding=encoding,
+            debug=http_debug,
+            timeout=http_timeout,
+            max_retries=http_max_retires,
+            proxy=http_proxy,
+            verify=http_certificates,
         )
     except HibpDownloaderException:
         return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)

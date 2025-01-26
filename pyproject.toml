@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "hibp-downloader"
-version = "0.3.1"
+version = "0.3.2"
 description = "Efficiently download HIBP new pwned password data by hash-prefix for a local-copy"
 authors = ["Nicholas de Jong <contact@threatpatrols.com>"]
 license = "BSD-3-Clause"
@@ -71,7 +71,6 @@ flake8 = "flake8 src/ tests/"
 isort = "isort --check-only src/ tests/"
 mypy = "dmypy run src/"
 pycln  = "pycln src/ tests/ --check"
-safety = "pip freeze | safety check --stdin --short-report --output text"
 pytest = "pytest tests/ -vv"
 
 [tool.slap.run]
