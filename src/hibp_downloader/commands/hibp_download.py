@@ -320,8 +320,14 @@ async def pwnedpasswords_get(
 
     try:
         response = await httpx_binary_response(
-            url=url, etag=etag, encoding=encoding, debug=http_debug, timeout=http_timeout, max_retries=http_max_retires,
-            proxy=http_proxy, verify=http_certificates
+            url=url,
+            etag=etag,
+            encoding=encoding,
+            debug=http_debug,
+            timeout=http_timeout,
+            max_retries=http_max_retires,
+            proxy=http_proxy,
+            verify=http_certificates,
         )
     except HibpDownloaderException:
         return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
