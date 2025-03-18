@@ -28,7 +28,7 @@ The options `--hash-type`, `--first-hash`, `--last-hash`, `--processes`, `--chun
 `--http-certificates` are described in the application-help and should be self-evident how to use.
 
 ## Usage
-![screenshot-help.png](../assets/screenshot-download-help.png)
+![screenshot-help.png](../assets/img/screenshot-download-help.png)
 
 ## Logs
 The downloader logs emit information about the download progress, not each requested hash-prefix content 

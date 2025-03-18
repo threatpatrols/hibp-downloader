@@ -1,0 +1,38 @@
+
+name: docs
+
+on:
+  push:
+    branches: [ 'main', 'dev' ]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+permissions:
+  contents: write
+
+jobs:
+
+  docs:
+    runs-on: ubuntu-latest
+    environment: github-pages
+
+    steps:
+      - name: Checkout latest
+        uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+      - name: Install project using UV
+        run: |
+          cd docs
+          uv tool install . || exit 0
+        # NB: until uv is able to handle packages without executables we need to use an " || exit 0"
+      - name: Build docs and publish
+        run: |
+          cd docs
+          uv run --active -- bash -xc 'mkdocs --version'
+          uv run --active -- bash -xc 'mkdocs gh-deploy --force'

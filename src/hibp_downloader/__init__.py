@@ -37,7 +37,7 @@ if "--quiet" in argv or getenv("HIBPDL_QUIET", "").lower().startswith(("true", "
 HELP_EPILOG_FOOTER = f"""
 {__title__} v{__version__}
 
-Docs: [hibp-downloader.readthedocs.io](https://hibp-downloader.readthedocs.io)
+Docs: [threatpatrols.github.io/hibp-downloader](https://threatpatrols.github.io/hibp-downloader)
 
 Project: [github.com/threatpatrols/hibp-downloader](https://github.com/threatpatrols/hibp-downloader)
 """

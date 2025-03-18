@@ -17,7 +17,7 @@ that you likely do not need to implement a database to have a service query this
 option to 
 
 ## Usage
-![screenshot-help.png](../assets/screenshot-query-help.png)
+![screenshot-help.png](../assets/img/screenshot-query-help.png)
 
 CAUTION: by default the CLI will ask the user to input the password (without being shown), it is also possible
 to use the `--password` input option to pass this in directly;  If you do this you must understand the potential

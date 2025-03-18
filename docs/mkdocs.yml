@@ -1,16 +1,166 @@
 
-docs_dir: content
-site_name: "HIBP Downloader"
-
+# Navigation
+# ===
 nav:
-  - Home: index.md
+  - HIBP Downloader:
+    - Home: index.md
+    - Commands:
+      - command/download.md
+      - command/generate.md
+      - command/query.md
+    - Other:
+      - project.md
+      - development.md
+      - license.md
+  - Threat Patrols Docs: https://docs.threatpatrols.com/
 
-  - Commands:
-    - command/download.md
-    - command/generate.md
-    - command/query.md
+exclude_docs: |
+  !.github
 
-  - Other:
-    - project.md
-    - development.md
-    - license.md
+
+# Site
+# ===
+docs_dir: docs
+site_name: HIBP Downloader
+site_url: https://threatpatrols.github.io/hibp-downloader/
+site_author: Nicholas de Jong
+site_description: Efficiently download new pwned password hashes from api.pwnedpasswords.com fast
+
+
+# Repo
+# ===
+repo_url: https://github.com/threatpatrols/hibp-downloader
+repo_name: threatpatrols/hibp-downloader
+
+
+# Copyright
+# ===
+copyright: Copyright &copy; 2023 - 2025 Threat Patrols Pty. Ltd.
+
+
+# Theme
+# ===
+theme:
+  name: material
+  language: en
+
+  palette:
+    - scheme: default
+      primary: red
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  logo: assets/img/passkey-white-128x128.png
+  favicon: assets/img/passkey-black-128x128.png
+
+  features:
+    - navigation.expand         # When expansion is enabled, the left sidebar will expand all collapsible subsections by default, so the user doesn't have to open subsections manually
+    #- navigation.sections       # When sections are enabled, top-level sections are rendered as groups in the sidebar for viewports above 1220px, but remain as-is on mobile.
+    - navigation.top            # A back-to-top button can be shown when the user, after scrolling down, starts to scroll up again. It's rendered centered and just below the header.
+    - navigation.tabs           # When tabs are enabled, top-level sections are rendered in a menu layer below the header for viewports above 1220px, but remain as-is on mobile.
+    - navigation.tabs.sticky    # When sticky tabs are enabled, navigation tabs will lock below the header and always remain visible when scrolling down.
+    - search.highlight
+
+# Additional configuration
+extra:
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/threatpatrols/hibp-downloader
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/hibp-downloader/
+    - icon: octicons/browser-16
+      link: https://www.threatpatrols.com
+
+
+# Extras
+# ===
+extra_css:
+  - assets/css/extra.css
+extra_javascript:
+  - assets/js/extra.js
+
+
+# Plugins
+# ===
+plugins:
+  - search
+  - redirects:
+      redirect_maps:
+        #opnsense/plugins/index.md: opnsense/index.md
+        #opnsense/multicloudsense/index.md: opnsense/index.md
+  - minify:
+      minify_js: true
+      minify_css: true
+      minify_html: true
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [../src]
+          options:
+            heading_level: 3
+            show_root_heading: true
+            show_root_full_path: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            separate_signature: true
+            show_signature_annotations: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+
+  - toc:
+      permalink: true
+
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.tilde
+
+  - pymdownx.arithmatex:
+      generic: true
+
+  - pymdownx.betterem:
+      smart_enable: all
+
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+
+  - pymdownx.emoji:  # https://squidfunk.github.io/mkdocs-material/reference/icons-emojis
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+#  - pymdownx.magiclink:
+#      repo_url_shorthand: true
+#      user: squidfunk
+#      repo: mkdocs-material
+
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  - pymdownx.tabbed:
+      alternate_style: true
+
+  - pymdownx.tasklist:
+      custom_checkbox: true

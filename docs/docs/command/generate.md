@@ -4,7 +4,7 @@ Allows the user to generate a single decompressed text file with pwned password 
 to the single-file output [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from the HIBP team.
 
 ## Usage
-![screenshot-help.png](../assets/screenshot-generate-help.png)
+![screenshot-help.png](../assets/img/screenshot-generate-help.png)
 
 ## Example
 ```commandline
