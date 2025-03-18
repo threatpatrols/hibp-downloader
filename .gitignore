@@ -1,29 +1,24 @@
 
-*.py[cod]
-*.egg-info
-*.egg
-
-venv*/
-.venv*/
 .idea/
+.vscode/
+.venv/
 .pytest_cache/
 __pycache__/
 .pytest*/
 
 dev/
-dev.py
-samples/
-
 dist/
 build/
 packages/
+docs/site/
 
-/.vscode
-/dist
-/build
-.venv/
-*.egg-info/
 poetry.lock
+.pdm-build
 .dmypy.json
+.DS_Store
+
+*.py[cod]
+*.egg-info
+*.egg
 
 profiler.html
