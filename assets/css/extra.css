@@ -1,0 +1,13 @@
+
+@keyframes heart-pulse {
+  0%, 40%, 80%, 100% { transform: scale(1); }
+  20%, 60% { transform: scale(1.15); }
+}
+.heart {
+  animation: heart-pulse 1000ms infinite;
+  color: red;
+}
+
+.gitlab {
+  color: #fc6d26;
+}
