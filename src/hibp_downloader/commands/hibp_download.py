@@ -265,7 +265,7 @@ async def pwnedpasswords_get_and_store_async(
     if metadata_existing.data_source:
         if metadata_existing.server_timestamp:
             local_ttl = (
-                local_cache_ttl - (datetime.now().astimezone() - metadata_existing.server_timestamp).seconds  # type: ignore[operator]
+                local_cache_ttl - (datetime.now().astimezone() - metadata_existing.server_timestamp).total_seconds()  # type: ignore[operator]
             )
             if local_ttl > 0:
                 logger_.debug(f"Skipping {prefix}; local-cache has {local_ttl} time-to-live")
