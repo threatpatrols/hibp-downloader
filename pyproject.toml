@@ -5,6 +5,9 @@ requires = ["pdm-backend"]
 
 # project
 # ===
+[tool.poetry]
+version = "0.3.2"
+
 [project]
 name = "hibp-downloader"
 license = {text = "BSD-3-Clause" }
