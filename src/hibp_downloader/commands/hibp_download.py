@@ -126,6 +126,7 @@ def main(
 
     result_queue = Manager().Queue()
     results_queue_process = Process(target=results_queue_processor, args=(result_queue,))
+    results_queue_process.daemon = True
     results_queue_process.start()
 
     work_queue: Queue = Queue()
@@ -143,22 +144,38 @@ def main(
         http_debug=False,
     )
 
-    worker_processes = start_worker_processes(
-        work_queue=work_queue, result_queue=result_queue, worker_count=number_of_workers, worker_args=worker_args
-    )
-    enqueue_worker_tasks(
-        first_hash, last_hash, worker_count=len(worker_processes), queue=work_queue, chunk_size=chunk_size
-    )
+    worker_processes = []
 
-    logger.info(f"Created {len(worker_processes)} worker processes to consume a queue of prefix-hash values.")
+    try:
+        worker_processes = start_worker_processes(
+            work_queue=work_queue, result_queue=result_queue, worker_count=number_of_workers, worker_args=worker_args
+        )
+        enqueue_worker_tasks(
+            first_hash, last_hash, worker_count=len(worker_processes), queue=work_queue, chunk_size=chunk_size
+        )
 
-    for i, worker_process in enumerate(worker_processes):
-        worker_process.join()
-        logger.debug(f"Queue worker process {i} finished.")
+        logger.info(f"Created {len(worker_processes)} worker processes to consume a queue of prefix-hash values.")
 
-    result_queue.put(QUEUE_WORKER_EXIT_SENTINEL)
-    results_queue_process.join()
-    logger.info("Done")
+        for i, worker_process in enumerate(worker_processes):
+            worker_process.join()
+            logger.debug(f"Queue worker process {i} finished.")
+
+        result_queue.put(QUEUE_WORKER_EXIT_SENTINEL)
+        results_queue_process.join()
+        logger.info("Done")
+
+    except KeyboardInterrupt:
+        logger.warning("Download process interrupted by user. Stopping workers...")
+        for p in worker_processes:
+            if p.is_alive():
+                p.terminate()
+        if results_queue_process.is_alive():
+            results_queue_process.terminate()
+
+        work_queue.close()
+        work_queue.cancel_join_thread()
+
+        logger.warning("Workers stopped.")
 
 
 def enqueue_worker_tasks(
