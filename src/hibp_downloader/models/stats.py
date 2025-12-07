@@ -168,5 +168,5 @@ class QueueItemStatsCompute:
             elif item.data_source == PrefixMetadataDataSource.unknown_source_status:
                 data["unknown_source_status_count"] += 1
 
-        data["start_time"] = (oldest_timestamp - datetime.fromtimestamp(0).astimezone()).total_seconds()
+        data["start_time"] = oldest_timestamp.timestamp()
         self.stats = QueueItemStats(**data)
