@@ -97,4 +97,4 @@ async def pwnedpasswords_datastore_sorted_async(prefix, hash_type):
         prepend_prefix=True,
     )
 
-    return {prefix: datafile_content, f"{prefix}_datafile": datafile_filepath}
+    return {prefix: datafile_content}
