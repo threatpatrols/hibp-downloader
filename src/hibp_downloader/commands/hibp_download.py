@@ -6,6 +6,10 @@ from multiprocessing import Manager, Process, Queue
 from pathlib import Path
 from typing import Any, List, Union
 
+import gzip
+
+GZIP_MAGIC_BYTES = b'\x1f\x8b'
+
 import typer
 from typing_extensions import Annotated
 
@@ -36,6 +40,18 @@ from hibp_downloader.models import (
     QueueRunningStats,
     WorkerArgs,
 )
+
+def is_valid_gzip(data: bytes) -> bool:
+    """Verify that the content is a valid gzip file."""
+    if not data or len(data) < 2:
+        return False
+    if not data.startswith(GZIP_MAGIC_BYTES):
+        return False
+    try:
+        gzip.decompress(data)
+        return True
+    except Exception:
+        return False
 
 logger = logger_get(name=LOGGER_NAME)
 
@@ -249,23 +265,39 @@ async def pwnedpasswords_get_and_store_async(
 
     datafile_suffix = encoding_type_file_suffix(encoding_type)
 
-    # get existing metadata if available
-    metadata_existing = await load_metadata(
-        metadata_path=metadata_path,
+    force_redownload = False
+    local_file_valid = await verify_local_datafile(
         data_path=data_path,
+        metadata_path=metadata_path,
+        hash_type=hash_type,
         prefix=prefix,
-        hash_type=hash_type.value,
         datafile_suffix=datafile_suffix,
     )
+    if not local_file_valid:
+        logger_.warning(
+            f"Prefix {prefix}: Local file corrupted or missing, forcing re-download"
+        )
+        force_redownload = True
 
-    if not metadata_existing:
-        logger.debug(f"No existing metadata, will generate new metadata for {prefix!r}")
+    metadata_existing = PrefixMetadata(prefix=prefix, hash_type=hash_type)
+    if not force_redownload:
+        # get existing metadata if available
+        metadata_existing = await load_metadata(
+            metadata_path=metadata_path,
+            data_path=data_path,
+            prefix=prefix,
+            hash_type=hash_type.value,
+            datafile_suffix=datafile_suffix,
+        )
+
+        if not metadata_existing:
+            logger_.debug(f"No existing metadata, will generate new metadata for {prefix!r}")
 
     etag = None
-    if metadata_existing.data_source:
+    if metadata_existing.data_source and not force_redownload:
         if metadata_existing.server_timestamp:
             local_ttl = (
-                local_cache_ttl - (datetime.now().astimezone() - metadata_existing.server_timestamp).total_seconds()  # type: ignore[operator]
+                local_cache_ttl - (datetime.now().astimezone() - metadata_existing.server_timestamp).total_seconds()
             )
             if local_ttl > 0:
                 logger_.debug(f"Skipping {prefix}; local-cache has {local_ttl} time-to-live")
@@ -275,7 +307,7 @@ async def pwnedpasswords_get_and_store_async(
         if not ignore_etag:
             etag = metadata_existing.etag
 
-    # download with etag setting
+    # download
     binary, metadata_latest = await pwnedpasswords_get(
         prefix,
         hash_type=hash_type,
@@ -289,23 +321,27 @@ async def pwnedpasswords_get_and_store_async(
     )
     metadata_latest.start_timestamp = start_timestamp
 
-    metadata = metadata_existing
+    metadata = metadata_existing if not force_redownload else PrefixMetadata(prefix=prefix, hash_type=hash_type)
     for attr_name in dir(metadata_latest):
         if not callable(getattr(metadata_latest, attr_name)) and not str(attr_name).startswith("_"):
             value = getattr(metadata_latest, attr_name)
             if value:
                 setattr(metadata, attr_name, value)
 
-    # save
+    # save only if content is valid
     if binary:
-        await save_datafile(
-            data_path=data_path,
-            hash_type=hash_type,
-            prefix=prefix,
-            content=binary,
-            filename_suffix=datafile_suffix,
-            timestamp=metadata.last_modified,
-        )
+        if is_valid_gzip(binary):
+            await save_datafile(
+                data_path=data_path,
+                hash_type=hash_type,
+                prefix=prefix,
+                content=binary,
+                filename_suffix=datafile_suffix,
+                timestamp=metadata.last_modified,
+            )
+        else:
+            logger_.error(f"Prefix {prefix}: Download failed, invalid non-gzip binary")
+            metadata.data_source = PrefixMetadataDataSource.unknown_source_status
 
     if metadata.data_source not in (
         PrefixMetadataDataSource.local_source_ttl_cache,
@@ -327,47 +363,170 @@ async def pwnedpasswords_get(
     http_certificates: str,
     http_debug: bool,
 ):
+    logger_ = logger_get(name=LOGGER_NAME)
+
     url = f"{PWNEDPASSWORDS_API_URL}/range/{prefix}"
     if hash_type == HashType.ntlm:
         url += "?mode=ntlm"
 
-    try:
-        response = await httpx_binary_response(
-            url=url,
-            etag=etag,
-            encoding=encoding,
-            debug=http_debug,
-            timeout=http_timeout,
-            max_retries=http_max_retires,
-            proxy=http_proxy,
-            verify=http_certificates,
-        )
-    except HibpDownloaderException:
-        return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
+    max_attempts = max(http_max_retires, 3)  # at least 3 attempts
+    current_etag = etag  # use etag only on the first attempt
 
-    metadata = PrefixMetadata(
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = await httpx_binary_response(
+                url=url,
+                etag=current_etag,
+                encoding=encoding,
+                debug=http_debug,
+                timeout=http_timeout,
+                max_retries=http_max_retires,
+                proxy=http_proxy,
+                verify=http_certificates,
+            )
+        except HibpDownloaderException as e:
+            logger_.warning(
+                f"Prefix {prefix}: HTTP error (attempt {attempt}/{max_attempts}): {e}"
+            )
+            if attempt < max_attempts:
+                await asyncio.sleep(2 ** (attempt - 1))  # Exponential backoff: 1s, 2s, 4s...
+                current_etag = None  # disable etag for retries
+                continue
+            return None, PrefixMetadata(
+                prefix=prefix,
+                hash_type=hash_type,
+                data_source=PrefixMetadataDataSource.unknown_source_status
+            )
+
+        # HTTP 304 Not Modified - the local file is already up to date.
+        if response.status_code == 304:
+            metadata = PrefixMetadata(
+                prefix=prefix,
+                hash_type=hash_type,
+                etag=response.headers.get("etag"),
+                bytes=0,
+                server_timestamp=response.headers.get("date"),
+                last_modified=response.headers.get("last-modified"),
+                content_encoding=response.headers.get("content-encoding"),
+                content_checksum=None,
+                data_source=PrefixMetadataDataSource.local_source_etag_match,
+            )
+            return None, metadata
+
+        # HTTP 200 OK - verify that the content is valid
+        elif response.status_code == 200:
+            if response.binary and is_valid_gzip(response.binary):
+                # valid content
+                metadata = PrefixMetadata(
+                    prefix=prefix,
+                    hash_type=hash_type,
+                    etag=response.headers.get("etag"),
+                    bytes=len(response.binary),
+                    server_timestamp=response.headers.get("date"),
+                    last_modified=response.headers.get("last-modified"),
+                    content_encoding=response.headers.get("content-encoding"),
+                    content_checksum=hashlib.sha256(response.binary).hexdigest(),
+                )
+                cf_cache_status = response.headers.get("cf-cache-status", "")
+                if cf_cache_status.upper() == "HIT":
+                    metadata.data_source = PrefixMetadataDataSource.remote_source_remote_cache
+                else:
+                    metadata.data_source = PrefixMetadataDataSource.remote_source_origin_source
+                return response.binary, metadata
+
+            else:
+                # HTTP 200 but corrupted content - try again
+                content_preview = response.binary[:50] if response.binary else b''
+                logger_.warning(
+                    f"Prefix {prefix}: HTTP 200 but invalid gzip content "
+                    f"(attempt {attempt}/{max_attempts}, preview: {content_preview!r})"
+                )
+                if attempt < max_attempts:
+                    await asyncio.sleep(2 ** (attempt - 1))
+                    current_etag = None  # force complete re-download
+                    continue
+
+        # other status codes (4xx, 5xx) - try again
+        else:
+            logger_.warning(
+                f"Prefix {prefix}: HTTP {response.status_code} "
+                f"(attempt {attempt}/{max_attempts})"
+            )
+            if attempt < max_attempts:
+                await asyncio.sleep(2 ** (attempt - 1))
+                current_etag = None
+                continue
+
+    # all attempts exhausted
+    logger_.error(
+        f"Prefix {prefix}: download failed after {max_attempts} attempts"
+    )
+    return None, PrefixMetadata(
         prefix=prefix,
         hash_type=hash_type,
-        etag=response.headers.get("etag"),
-        bytes=len(response.binary),
-        server_timestamp=response.headers.get("date"),
-        last_modified=response.headers.get("last-modified"),
-        content_encoding=response.headers.get("content-encoding"),
-        content_checksum=hashlib.sha256(response.binary).hexdigest() if response.binary else None,
+        data_source=PrefixMetadataDataSource.unknown_source_status
     )
 
-    if response.status_code == 304:  # HTTP 304 Not Modified status
-        metadata.data_source = PrefixMetadataDataSource.local_source_etag_match
-    elif response.status_code == 200:
-        if response.headers.get("cf-cache-status").upper() == "HIT":  # Fragile: relies on HIBP hosted via Cloudflare
-            metadata.data_source = PrefixMetadataDataSource.remote_source_remote_cache
-        else:
-            metadata.data_source = PrefixMetadataDataSource.remote_source_origin_source
-    else:
-        metadata.data_source = PrefixMetadataDataSource.unknown_source_status
 
-    return response.binary, metadata
+async def verify_local_datafile(
+    data_path: Path,
+    metadata_path: Path,
+    hash_type: HashType,
+    prefix: str,
+    datafile_suffix: str,
+) -> bool:
+    """
+    Checks that the local file exists and is a valid gzip file.
+    If corrupted, deletes both the file and the metadata.
+    Returns True if the file is valid, False otherwise.
+    """
+    logger_ = logger_get(name=LOGGER_NAME)
 
+    hash_type_str = hash_type.value if isinstance(hash_type, HashType) else hash_type
+
+    data_file_path = (
+        Path(data_path) / hash_type_str / prefix[0:2] / prefix[2:4] / f"{prefix}.{datafile_suffix}"
+    )
+
+    metadata_file_path = (
+        Path(metadata_path) / hash_type_str / prefix[0:2] / prefix[2:4] / f"{prefix}.json"
+    )
+
+    if not data_file_path.exists():
+        if metadata_file_path.exists():
+            try:
+                metadata_file_path.unlink()
+            except OSError:
+                pass
+        return False
+
+    # verify contents
+    try:
+        with open(data_file_path, 'rb') as f:
+            data = f.read()
+
+        if is_valid_gzip(data):
+            return True
+
+        logger_.warning(f"Prefix {prefix}: Corrupted file, removing ...")
+
+    except Exception as e:
+        logger_.warning(f"Prefix {prefix}: Error reading ({e}), removing ...")
+
+    # delete corrupted file
+    try:
+        data_file_path.unlink()
+    except OSError:
+        pass
+
+    # delete metadata
+    if metadata_file_path.exists():
+        try:
+            metadata_file_path.unlink()
+        except OSError:
+            pass
+
+    return False
 
 def results_queue_processor(q: Queue):
     running_stats = QueueRunningStats()
