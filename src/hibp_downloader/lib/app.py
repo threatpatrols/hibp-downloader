@@ -9,6 +9,13 @@ from .. import HELP_EPILOG_FOOTER, LOGGER_NAME, __title__, __version__, app_cont
 from ..exceptions import HibpDownloaderException
 from ..lib.logger import logger_get
 
+"""
+2026-04-05 Bug fix JimTheFrog and the AI:
+Data_path was not optional at parse time, preventing subcommand help from displaying:
+- Added default empty string at app.py line 50.
+- Non-help execution still enforces --data-path with error at app.py:73.
+"""
+
 logger = logger_get(name=LOGGER_NAME)
 app = typer.Typer(
     add_completion=app_context.add_completion,
@@ -41,7 +48,7 @@ def main(
             envvar="HIBPDL_DATA_PATH",
             show_envvar=False,
         ),
-    ],
+    ] = "",
     metadata_path: Annotated[
         str,
         typer.Option(
@@ -72,6 +79,9 @@ def main(
     # return early if --help is all we need
     if "--help" in sys.argv:
         return
+
+    if not data_path:
+        raise typer.BadParameter("Missing option '--data-path'", param_hint="--data-path")
 
     # debug is captured at __init__; referenced here for happy linters
     if debug:
