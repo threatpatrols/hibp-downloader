@@ -29,9 +29,7 @@ class LoggerNone:
         return empty
 
 
-def logger_get(
-    name: str | None, loglevel: str = "warning", logfile: str | None = None
-) -> logging.Logger | LoggerNone:
+def logger_get(name: str | None, loglevel: str = "warning", logfile: str | None = None) -> logging.Logger | LoggerNone:
     if name is None:
         return LoggerNone()
 

@@ -167,7 +167,9 @@ async def verify_local_datafile(
         if verify_binary_encoding(data, encoding_type):
             return "valid"
 
-        logger_.warning(f"Prefix {prefix}: Corrupted data file (invalid encoding '{encoding_type}'). Deleting data and metadata.")
+        logger_.warning(
+            f"Prefix {prefix}: Corrupted data file (invalid encoding '{encoding_type}'). Deleting data and metadata."
+        )
     except Exception as e:
         logger_.warning(f"Prefix {prefix}: Error reading data file ({e}). Deleting data and metadata.")
 

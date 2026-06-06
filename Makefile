@@ -34,6 +34,7 @@ test:
 	uv run pytest tests/ -vv
 
 build:
+	uv run python .agent/workflows/scripts/bump_semver_patch.py
 	uv build --out-dir dist
 
 # clean: NB > do not remove dist/ or build/

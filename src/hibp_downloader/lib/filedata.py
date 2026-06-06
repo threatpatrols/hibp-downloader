@@ -209,4 +209,3 @@ def verify_binary_encoding(data: bytes, encoding_type: str | None) -> bool:
     elif encoding_lower == "identity":
         return is_valid_identity(data)
     return True
-

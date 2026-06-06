@@ -25,6 +25,7 @@ When starting a task on this repository, orient yourself by reading in this orde
 ### Development Guidelines
 - **[Coding Standards](rules/conventions.md)**: Rules for logging, type annotations, Typer CLI structure, and async design.
 - **[Development Workflow](workflows/development.md)**: Guidelines for testing, linting, formatting, and running using the `Makefile` or direct sandboxed `uv` commands.
+- **[Release & Versioning Workflow](workflows/release-process.md)**: Guidelines for version bumping and compiling packages.
 
 ## Documentation Hierarchy
 

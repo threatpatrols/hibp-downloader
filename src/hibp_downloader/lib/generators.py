@@ -2,7 +2,9 @@ from collections.abc import Generator
 from itertools import islice
 
 
-def hex_sequence(hex_first: str = "00000", hex_last: str = "fffff", _string_length: int = 5) -> Generator[str, None, None]:
+def hex_sequence(
+    hex_first: str = "00000", hex_last: str = "fffff", _string_length: int = 5
+) -> Generator[str, None, None]:
     if hex_first.startswith("0x"):
         hex_first = hex_first[2:]
 

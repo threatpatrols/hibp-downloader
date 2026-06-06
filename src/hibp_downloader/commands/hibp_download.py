@@ -26,7 +26,13 @@ from hibp_downloader import (
     app_context,
 )
 from hibp_downloader.exceptions import HibpDownloaderException
-from hibp_downloader.lib.filedata import encoding_type_file_suffix, load_metadata, save_datafile, save_metadatafile, verify_binary_encoding
+from hibp_downloader.lib.filedata import (
+    encoding_type_file_suffix,
+    load_metadata,
+    save_datafile,
+    save_metadatafile,
+    verify_binary_encoding,
+)
 from hibp_downloader.lib.generators import hex_sequence, iterable_chunker
 from hibp_downloader.lib.hashing import hashed_sha256
 from hibp_downloader.lib.http import httpx_async_client, httpx_binary_response
@@ -160,7 +166,9 @@ def main(
         )
 
         logger.info(f"Created {len(worker_processes)} worker processes to consume a queue of prefix-hash values.")
-        logger.info("Source legend: lc = local TTL cache, et = local ETag match, rc = remote CDN cache, ro = remote origin source, xx = unknown/failed")
+        logger.info(
+            "Legend: lc = local-cache, et = ETag match, rc = remote-cache, ro = remote-origin, xx = unknown/failed"
+        )
 
         for i, worker_process in enumerate(worker_processes):
             worker_process.join()
@@ -409,7 +417,9 @@ async def pwnedpasswords_get(
         if not verify_binary_encoding(binary, encoding):
             logger.warning(f"Prefix {prefix}: Invalid binary received (mismatch with expected encoding '{encoding}')")
             return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
-        if response.headers.get("cf-cache-status", "").upper() == "HIT":  # Fragile: relies on HIBP hosted via Cloudflare
+        if (
+            response.headers.get("cf-cache-status", "").upper() == "HIT"
+        ):  # Fragile: relies on HIBP hosted via Cloudflare
             metadata.data_source = PrefixMetadataDataSource.remote_source_remote_cache
         else:
             metadata.data_source = PrefixMetadataDataSource.remote_source_origin_source
@@ -434,7 +444,9 @@ def results_queue_processor(q: Queue, summary_queue: Queue) -> None:
             if metadata_items:
                 for metadata_item in metadata_items:
                     if metadata_item.data_source == PrefixMetadataDataSource.unknown_source_status:
-                        logger.error(f"Failed to download prefix {metadata_item.prefix!r}; local data file was not updated")
+                        logger.error(
+                            f"Failed to download prefix {metadata_item.prefix!r}; local data file was not updated"
+                        )
                 running_stats.add_item_stats(item=QueueItemStatsCompute(metadata_items).stats)
 
             if running_stats.queue_item_count % LOGGING_INFO_EVENT_MODULUS == 0:
