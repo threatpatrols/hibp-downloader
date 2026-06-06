@@ -58,4 +58,3 @@ def bump_semver_patch() -> None:
 
 if __name__ == "__main__":
     bump_semver_patch()
-
