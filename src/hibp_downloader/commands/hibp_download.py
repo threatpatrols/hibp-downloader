@@ -264,12 +264,25 @@ async def pwnedpasswords_get_store_gather(
     worker_args: WorkerArgs,
     http_client: httpx.AsyncClient | None = None,
 ) -> None:
-    metadata_results = await asyncio.gather(
+    raw_results = await asyncio.gather(
         *[
             pwnedpasswords_get_and_store_async(hash_prefix, http_client=http_client, **worker_args.as_dict())
             for hash_prefix in hash_prefixes
         ],
+        return_exceptions=True,
     )
+
+    metadata_results = []
+    for prefix, res in zip(hash_prefixes, raw_results):
+        if isinstance(res, PrefixMetadata):
+            metadata_results.append(res)
+        else:
+            if isinstance(res, Exception) and not isinstance(res, HibpDownloaderException):
+                logger.error(f"Prefix {prefix}: Unexpected error ({res})")
+            metadata_results.append(
+                PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
+            )
+
     result_queue.put(metadata_results)
 
 
@@ -310,7 +323,7 @@ async def pwnedpasswords_get_and_store_async(
     )
 
     if not metadata_existing:
-        logger.debug(f"No existing metadata, will generate new metadata for {prefix!r}")
+        logger_.debug(f"No existing metadata, will generate new metadata for {prefix!r}")
 
     etag = None
     if metadata_existing.data_source:

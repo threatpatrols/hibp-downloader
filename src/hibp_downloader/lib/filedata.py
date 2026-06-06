@@ -33,21 +33,27 @@ def generate_filepath(
 
 
 async def append_stringfile(filepath: Path, content: str) -> None:
-    if not await aiofiles.os.path.isfile(filepath):
-        return await save_bytesfile(filepath=filepath, content=content.encode("utf8"))
-
-    async with aiofiles.open(filepath, mode="a") as f:
-        await f.write(content)
+    try:
+        if not await aiofiles.os.path.isfile(filepath):
+            return await save_bytesfile(filepath=filepath, content=content.encode("utf8"))
+        async with aiofiles.open(filepath, mode="a") as f:
+            await f.write(content)
+    except OSError as e:
+        logger.error(f"Failed to append string to file {filepath}: {e}")
+        raise HibpDownloaderException(f"Failed to append string file: {e}") from e
 
 
 async def save_bytesfile(filepath: Path, content: bytes, timestamp: datetime | None = None) -> None:
     full_path = os.path.realpath(os.path.expanduser(filepath))
-    await aiofiles.os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    async with aiofiles.open(full_path, mode="wb") as f:
-        await f.write(content)
-
-    if timestamp:
-        os.utime(full_path, times=(timestamp.timestamp(), timestamp.timestamp()))
+    try:
+        await aiofiles.os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        async with aiofiles.open(full_path, mode="wb") as f:
+            await f.write(content)
+        if timestamp:
+            os.utime(full_path, times=(timestamp.timestamp(), timestamp.timestamp()))
+    except OSError as e:
+        logger.error(f"Failed to save bytes to file {filepath}: {e}")
+        raise HibpDownloaderException(f"Failed to save bytes file: {e}") from e
 
 
 async def save_datafile(
@@ -87,8 +93,12 @@ async def save_metadatafile(
 async def load_bytesfile(filepath: Path) -> bytes:
     if not await aiofiles.os.path.isfile(filepath):
         raise HibpDownloaderException(f"File not found {filepath}")
-    async with aiofiles.open(filepath, mode="rb") as f:
-        return await f.read()
+    try:
+        async with aiofiles.open(filepath, mode="rb") as f:
+            return await f.read()
+    except OSError as e:
+        logger.error(f"Failed to read bytes from file {filepath}: {e}")
+        raise HibpDownloaderException(f"Failed to read bytes file: {e}") from e
 
 
 async def load_datafile(
@@ -117,9 +127,13 @@ async def load_metadata(
     metadata_filepath = generate_filepath(metadata_path, hash_type, prefix, filename_suffix="meta")
 
     content = None
-    if await aiofiles.os.path.isfile(metadata_filepath):
-        async with aiofiles.open(metadata_filepath, "r") as f:
-            content = await f.read()
+    try:
+        if await aiofiles.os.path.isfile(metadata_filepath):
+            async with aiofiles.open(metadata_filepath, "r") as f:
+                content = await f.read()
+    except OSError as e:
+        logger.error(f"Failed to read metadata file {metadata_filepath}: {e}")
+        raise HibpDownloaderException(f"Failed to read metadata file: {e}") from e
 
     if not content:
         logger.debug(
