@@ -32,14 +32,14 @@ The options `--hash-type`, `--first-hash`, `--last-hash`, `--processes`, `--chun
 
 ## Logs
 The downloader logs emit information about the download progress, not each requested hash-prefix content 
-object.  The following attributes are logged -
+object. The log includes the current prefix position, the processed data size, hash rate, API query rates, and a `source` legend tracking where the files were fetched from:
 
- * `prefix=` the current hash prefix content downloaded.
- * `source.lc=` count of locally-cached content objects that did not require any request.
- * `source.et` count of etag-match content objects that did not require re-download from source.
- * `source.rc` count of remote-cached content objects that already existed at the edge-cache provider (ie Cloudflare).
- * `source.ro` count of remote-origin content objects that needed to be retrieved from origin.
- * `source.xx` count of content objects that have unknown remote cache status. 
+ * `lc` (local-cache): count of locally-cached content objects that did not require any network request.
+ * `et` (ETag match): count of etag-match content objects that did not require re-download from source.
+ * `rc` (remote-cache): count of remote-cached content objects that came from remote-server cache (e.g. Cloudflare).
+ * `ro` (remote-origin): count of remote-origin content objects that needed to be retrieved from origin server.
+ * `xx` (unknown/failed): count of failed responses.
+
 
 ## Example
 ```commandline

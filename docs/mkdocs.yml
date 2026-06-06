@@ -8,9 +8,9 @@ nav:
       - command/download.md
       - command/generate.md
       - command/query.md
+      - command/validate.md
     - Other:
       - project.md
-      - development.md
       - license.md
   - Threat Patrols Docs: https://docs.threatpatrols.com/
 
