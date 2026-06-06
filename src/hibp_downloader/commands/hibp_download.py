@@ -25,7 +25,7 @@ from hibp_downloader import (
     app_context,
 )
 from hibp_downloader.exceptions import HibpDownloaderException
-from hibp_downloader.lib.filedata import encoding_type_file_suffix, load_metadata, save_datafile, save_metadatafile
+from hibp_downloader.lib.filedata import encoding_type_file_suffix, load_metadata, save_datafile, save_metadatafile, verify_binary_encoding
 from hibp_downloader.lib.generators import hex_sequence, iterable_chunker
 from hibp_downloader.lib.hashing import hashed_sha256
 from hibp_downloader.lib.http import httpx_binary_response
@@ -365,6 +365,9 @@ async def pwnedpasswords_get(
     if response.status_code == 304:  # HTTP 304 Not Modified status
         metadata.data_source = PrefixMetadataDataSource.local_source_etag_match
     elif response.status_code == 200:
+        if not verify_binary_encoding(response.binary, encoding):
+            logger.warning(f"Prefix {prefix}: Invalid binary received (mismatch with expected encoding '{encoding}')")
+            return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
         if response.headers.get("cf-cache-status", "").upper() == "HIT":  # Fragile: relies on HIBP hosted via Cloudflare
             metadata.data_source = PrefixMetadataDataSource.remote_source_remote_cache
         else:

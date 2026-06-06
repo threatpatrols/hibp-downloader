@@ -156,3 +156,57 @@ def encoding_type_file_suffix(encoding_type: str) -> str:
 
     # the encoding type becomes a naive 1:1 mapping at this point
     return encoding_type.lower()
+
+
+def is_valid_gzip(data: bytes) -> bool:
+    """Verify that the content is a valid gzip file.
+
+    Fully acknowledging github.com/matrix for the original implementation in branch fix-issue-10.
+    - https://github.com/matrix/hibp-downloader/tree/issue_10
+    - https://github.com/threatpatrols/hibp-downloader/pull/14/changes/8516fb21e48a312dcdb9cfdbf429e5c2594885c5
+
+    """
+    if not data or len(data) < 2:
+        return False
+    if not data.startswith(b"\x1f\x8b"):
+        return False
+    try:
+        gzip.decompress(data)
+        return True
+    except Exception:
+        return False
+
+
+def is_valid_identity(data: bytes) -> bool:
+    """Verify that the content is valid plain-text HIBP range response data."""
+    if not data:
+        return False
+    try:
+        text = data.decode("utf-8")
+        if not text:
+            return False
+        first_line = text.splitlines()[0]
+        if ":" not in first_line:
+            return False
+        parts = first_line.split(":")
+        if len(parts) != 2:
+            return False
+        hex_part, count_part = parts
+        int(hex_part, 16)
+        int(count_part)
+        return True
+    except Exception:
+        return False
+
+
+def verify_binary_encoding(data: bytes, encoding_type: str | None) -> bool:
+    """Verify that the binary blob matches the expected ENCODING_TYPE."""
+    if not data:
+        return False
+    encoding_lower = (encoding_type or "identity").lower()
+    if encoding_lower in ("gzip", "gz"):
+        return is_valid_gzip(data)
+    elif encoding_lower == "identity":
+        return is_valid_identity(data)
+    return True
+

@@ -4,7 +4,7 @@ import typer
 from typing import Annotated
 
 from .. import HELP_EPILOG_FOOTER, LOGGER_NAME, __title__, __version__, app_context
-from ..commands import hibp_download, hibp_generate, hibp_query
+from ..commands import hibp_download, hibp_generate, hibp_query, hibp_validate
 from ..exceptions import HibpDownloaderException
 from ..lib.logger import logger_get
 
@@ -93,3 +93,4 @@ def load_commands() -> None:
     app.add_typer(hibp_download.command, name=hibp_download.command_name, rich_help_panel=hibp_download.command_section)
     app.add_typer(hibp_generate.command, name=hibp_generate.command_name, rich_help_panel=hibp_generate.command_section)
     app.add_typer(hibp_query.command, name=hibp_query.command_name, rich_help_panel=hibp_query.command_section)
+    app.add_typer(hibp_validate.command, name=hibp_validate.command_name, rich_help_panel=hibp_validate.command_section)

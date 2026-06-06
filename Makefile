@@ -41,6 +41,11 @@ clean:
 	rm -rf .pdm-build/ .mypy_cache/ .pytest_cache/ .ruff_cache/
 
 run:
+	@echo "--------------------------------------------------------"
+	@echo "Hint: To pass double-dash options via make, use:"
+	@echo "make -- run --data-path <path> <hibp-command>"
+	@echo "--------------------------------------------------------"
+	@echo ""
 	uv run hibp-downloader $(ARGS) $(RUN_ARGS) || true
 
 all: format lint test build
