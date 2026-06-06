@@ -1,11 +1,10 @@
-import importlib
-import os
 import sys
 
 import typer
-from typing_extensions import Annotated
+from typing import Annotated
 
 from .. import HELP_EPILOG_FOOTER, LOGGER_NAME, __title__, __version__, app_context
+from ..commands import hibp_download, hibp_generate, hibp_query
 from ..exceptions import HibpDownloaderException
 from ..lib.logger import logger_get
 
@@ -23,7 +22,7 @@ app = typer.Typer(
 )
 
 
-def invoke_app():
+def invoke_app() -> None:
     try:
         load_commands()
         app()
@@ -64,7 +63,7 @@ def main(
             show_envvar=False,
         ),
     ] = False,
-):
+) -> None:
     """
     [bold]hibp-downloader[/bold] - Efficiently download new pwned password hashes from api.pwnedpasswords.com fast.
     """
@@ -90,38 +89,7 @@ def main(
     logger.info(f"{__title__}: v{__version__}")
 
 
-def load_commands():
-    loader_paths = [os.path.join(os.path.dirname(__file__), "..", "commands")]
-
-    for loader_path in loader_paths:
-        loader_path = os.path.realpath(loader_path)
-        logger.debug(f"Loading command modules from {loader_path!r}")
-
-        if loader_path not in sys.path:
-            sys.path.append(loader_path)
-
-        for filename in [f for f in os.listdir(loader_path) if os.path.isfile(os.path.join(loader_path, f))]:
-            if filename.startswith("_"):
-                continue
-            module_name = filename.split(".")[0]
-
-            try:
-                module = importlib.import_module(module_name)
-            except Exception as e:
-                raise HibpDownloaderException(f"Failed importing command-module {module_name}", detail=e)
-
-            logger.debug(f"Loaded command module {module_name!r} from {os.path.realpath(module.__file__)!r}")
-            if loader_path not in module.__file__:
-                logger.warning(
-                    f"Command module {module_name!r} NOT loaded from {loader_path!r}; "
-                    f"check for command-module filename collisions and consider renaming files."
-                )
-
-            for registered_group in app.registered_groups:
-                if registered_group.name == module.command_name:
-                    raise HibpDownloaderException(
-                        f"Command {module.command_name!r} from {os.path.realpath(module.__file__)!r}"
-                        "overrides already loaded command; consider changing the 'command_name' value."
-                    )
-
-            app.add_typer(module.command, name=module.command_name, rich_help_panel=module.command_section)
+def load_commands() -> None:
+    app.add_typer(hibp_download.command, name=hibp_download.command_name, rich_help_panel=hibp_download.command_section)
+    app.add_typer(hibp_generate.command, name=hibp_generate.command_name, rich_help_panel=hibp_generate.command_section)
+    app.add_typer(hibp_query.command, name=hibp_query.command_name, rich_help_panel=hibp_query.command_section)

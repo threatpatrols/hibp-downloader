@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from .prefix_metadata import PrefixMetadata, PrefixMetadataDataSource
 
@@ -23,86 +23,86 @@ class QueueItemStats:
     unknown_source_status_count: int
 
     start_time: float = field(default=time.time())
-    __end_time: Union[float, None] = field(default=None)
+    __end_time: float | None = field(default=None)
     __request_rate: float = field(default=0)  # per-second
     __bytes_processed_rate: float = field(default=0)  # per-second
 
     @property
-    def request_rate(self):
+    def request_rate(self) -> float:
         return self.__request_rate
 
     @property
-    def bytes_processed_rate(self):
+    def bytes_processed_rate(self) -> float:
         return self.__bytes_processed_rate
 
     @property
-    def run_time(self):
-        return self.end_time - self.start_time
+    def run_time(self) -> float:
+        return self.end_time - self.start_time  # type: ignore[operator]
 
     @property
-    def end_time(self):
+    def end_time(self) -> float | None:
         return self.__end_time
 
     @end_time.setter
-    def end_time(self, value: float):
+    def end_time(self, value: float) -> None:
         self.__end_time = value
         if self.run_time > 0:
             self.__request_rate = self.request_count / self.run_time
             self.__bytes_processed_rate = self.bytes_processed / self.run_time
 
-    def end_trigger(self):
+    def end_trigger(self) -> None:
         self.end_time = time.time()
 
 
 @dataclass()
 class QueueRunningStats:
-    start_time: float = field(default=time.time())
-    queue_item_count = 0
+    start_time: float = field(default_factory=time.time)
+    queue_item_count: int = field(default=0)
 
-    prefix_latest: Union[str, None] = field(default=None)
-    prefix_count_sum = 0
+    prefix_latest: str | None = field(default=None)
+    prefix_count_sum: int = field(default=0)
 
-    request_count_sum = 0
-    bytes_received_sum = 0
-    bytes_processed_sum = 0
+    request_count_sum: int = field(default=0)
+    bytes_received_sum: int = field(default=0)
+    bytes_processed_sum: int = field(default=0)
 
-    local_source_ttl_cache_count_sum = 0
-    local_source_etag_match_count_sum = 0
-    remote_source_remote_cache_count_sum = 0
-    remote_source_origin_source_count_sum = 0
-    unknown_source_status_count_sum = 0
+    local_source_ttl_cache_count_sum: int = field(default=0)
+    local_source_etag_match_count_sum: int = field(default=0)
+    remote_source_remote_cache_count_sum: int = field(default=0)
+    remote_source_origin_source_count_sum: int = field(default=0)
+    unknown_source_status_count_sum: int = field(default=0)
 
-    __end_time: Union[float, None] = field(default=None)
+    __end_time: float | None = field(default=None)
     __request_rate_total: float = field(default=0)  # per-second
     __bytes_processed_rate_total: float = field(default=0)  # per-second
 
     @property
-    def request_rate_total(self):
+    def request_rate_total(self) -> float:
         return self.__request_rate_total
 
     @property
-    def bytes_processed_rate_total(self):
+    def bytes_processed_rate_total(self) -> float:
         return self.__bytes_processed_rate_total
 
     @property
-    def run_time(self):
-        return self.end_time - self.start_time
+    def run_time(self) -> float:
+        return self.end_time - self.start_time  # type: ignore[operator]
 
     @property
-    def end_time(self):
+    def end_time(self) -> float | None:
         return self.__end_time
 
     @end_time.setter
-    def end_time(self, value: float):
+    def end_time(self, value: float) -> None:
         self.__end_time = value
         if self.run_time > 0:
             self.__request_rate_total = self.request_count_sum / self.run_time
             self.__bytes_processed_rate_total = self.bytes_processed_sum / self.run_time
 
-    def end_trigger(self):
+    def end_trigger(self) -> None:
         self.end_time = time.time()
 
-    def add_item_stats(self, item: QueueItemStats):
+    def add_item_stats(self, item: QueueItemStats) -> None:
         self.queue_item_count += 1
         self.prefix_latest = item.prefix_last
         self.prefix_count_sum += item.request_count
@@ -120,8 +120,8 @@ class QueueRunningStats:
 class QueueItemStatsCompute:
     stats: QueueItemStats
 
-    def __init__(self, results: List[PrefixMetadata]):
-        data: Dict[str, Any] = {
+    def __init__(self, results: list[PrefixMetadata]):
+        data: dict[str, Any] = {
             "start_time": None,
             "prefix_first": results[0].prefix,
             "prefix_last": results[-1].prefix,

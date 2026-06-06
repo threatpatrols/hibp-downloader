@@ -15,17 +15,17 @@ authors = [{name="Nicholas de Jong", email="ndejong@threatpatrols.com"}]
 description = "Efficiently download HIBP new pwned password data by hash-prefix for a local-copy"
 version = "0.3.4"
 readme = "README.md"
-requires-python = ">=3.8,<4"
+requires-python = ">=3.10,<4"
 keywords = ["hibp-downloader", "hibp", "haveibeenpwned", "haveibeenpwned-downloader", "sha1", "ntlm"]
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: BSD License",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12"
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
 ]
 dependencies = [
     "httpx[http2]>=0.21",   # https://pypi.org/project/httpx/#history
@@ -45,41 +45,6 @@ Repository = "https://github.com/threatpatrols/hibp-downloader"
 "Bug Tracker" = "https://github.com/threatpatrols/hibp-downloader/issues"
 
 
-# slap-cli
-# ===
-[tool.slap]
-typed = true
-release.branch = "dev"
-
-[tool.slap.test]
-check = "slap check"
-mypy = "dmypy run src"
-pytest = "pytest tests/ -vv"
-ruff-format = "ruff format --check"
-ruff-lint = "ruff check"
-
-[tool.slap.run]
-format = "ruff format ."
-check-prereqs = """set -e; \
-    uv --help > /dev/null || (echo 'Failed uv prereq!' && exit 1); \
-    pdm --help > /dev/null || (echo 'Failed pdm prereq!' && exit 1); \
-    flit --help > /dev/null || (echo 'Failed flit prereq!' && exit 1); \
-    echo "Prereqs okay."
-"""
-docs-dev = """set -e; \
-    cd docs \
-    && touch uv.lock \
-    && uv run --active -- bash -xc 'mkdocs serve'
-"""
-docs-build = """set -e; \
-    cd docs \
-    && uv run --active -- bash -xc 'mkdocs build'
-"""
-package-build = """set -e; \
-    slap release --validate \
-    && slap test \
-    && slap publish --dry --build-directory ./dist
-"""
 
 
 # mypy
@@ -95,10 +60,10 @@ warn_no_return = true
 warn_unreachable = true
 
 
-# uv
+# dependency-groups
 # ===
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
   "ruff",
   "pytest",
   "mypy",

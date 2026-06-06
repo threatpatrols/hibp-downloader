@@ -1,9 +1,10 @@
 import asyncio
 import json
 import os
+import sys
 
 import typer
-from typing_extensions import Annotated
+from typing import Annotated
 
 from hibp_downloader import ENCODING_TYPE, HELP_EPILOG_FOOTER, LOGGER_NAME, app_context
 from hibp_downloader.exceptions import HibpDownloaderException
@@ -45,6 +46,12 @@ def main(
     """
 
     logger.debug(f"Starting command {app_context.command!r} from {os.path.basename(__file__)!r}")
+
+    if "--password" in sys.argv:
+        logger.warning(
+            "Password supplied via --password CLI option; this value is visible in shell history and "
+            "/proc/<pid>/cmdline. Prefer the interactive prompt or the HIBPDL_PASSWORD environment variable."
+        )
 
     if app_context.data_path and not os.path.isdir(app_context.data_path):
         logger.error(f"Data path {app_context.data_path!r} does not exist, unable to continue")

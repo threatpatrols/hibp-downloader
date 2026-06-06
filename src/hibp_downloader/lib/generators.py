@@ -1,7 +1,8 @@
+from collections.abc import Generator
 from itertools import islice
 
 
-def hex_sequence(hex_first: str = "00000", hex_last: str = "fffff", __string_length=5):
+def hex_sequence(hex_first: str = "00000", hex_last: str = "fffff", _string_length: int = 5) -> Generator[str, None, None]:
     if hex_first.startswith("0x"):
         hex_first = hex_first[2:]
 
@@ -13,7 +14,7 @@ def hex_sequence(hex_first: str = "00000", hex_last: str = "fffff", __string_len
 
     value = int(hex_first, 16)
     while value <= int(str(hex_last), 16):
-        yield str(hex(value))[2:].zfill(__string_length)
+        yield str(hex(value))[2:].zfill(_string_length)
         value += 1
 
 

@@ -1,13 +1,14 @@
+
 import asyncio
-import hashlib
+import dataclasses
 import os
 from datetime import datetime
 from multiprocessing import Manager, Process, Queue
 from pathlib import Path
-from typing import Any, List, Union
+from typing import Any
 
 import typer
-from typing_extensions import Annotated
+from typing import Annotated
 
 from hibp_downloader import (
     APPROX_GZIP_BYTES_PER_HASH,
@@ -26,6 +27,7 @@ from hibp_downloader import (
 from hibp_downloader.exceptions import HibpDownloaderException
 from hibp_downloader.lib.filedata import encoding_type_file_suffix, load_metadata, save_datafile, save_metadatafile
 from hibp_downloader.lib.generators import hex_sequence, iterable_chunker
+from hibp_downloader.lib.hashing import hashed_sha256
 from hibp_downloader.lib.http import httpx_binary_response
 from hibp_downloader.lib.logger import logger_get
 from hibp_downloader.models import (
@@ -194,7 +196,7 @@ def enqueue_worker_tasks(
 
 def start_worker_processes(
     work_queue: Queue, result_queue: Any, worker_count: int, worker_args: WorkerArgs
-) -> List[Process]:
+) -> list[Process]:
     worker_processes = []
     for worker_index in range(0, worker_count):
         worker_process = Process(
@@ -207,13 +209,18 @@ def start_worker_processes(
     return worker_processes
 
 
-def queue_worker_process(work_queue: Queue, result_queue: Queue, worker_index: int, worker_args: WorkerArgs):
+def queue_worker_process(work_queue: Queue, result_queue: Queue, worker_index: int, worker_args: WorkerArgs) -> None:
+    asyncio.run(async_worker_loop(work_queue, result_queue, worker_index, worker_args))
+
+
+async def async_worker_loop(work_queue: Queue, result_queue: Queue, worker_index: int, worker_args: WorkerArgs) -> None:
+    loop = asyncio.get_running_loop()
     while True:
-        hash_prefixes = work_queue.get()
+        hash_prefixes = await loop.run_in_executor(None, work_queue.get)
         if hash_prefixes == QUEUE_WORKER_EXIT_SENTINEL:
             break
         worker_args.worker_index = worker_index
-        asyncio.run(pwnedpasswords_get_store_gather(result_queue, hash_prefixes, worker_args))
+        await pwnedpasswords_get_store_gather(result_queue, hash_prefixes, worker_args)
 
 
 async def pwnedpasswords_get_store_gather(result_queue: Queue, hash_prefixes: tuple, worker_args: WorkerArgs) -> None:
@@ -290,11 +297,10 @@ async def pwnedpasswords_get_and_store_async(
     metadata_latest.start_timestamp = start_timestamp
 
     metadata = metadata_existing
-    for attr_name in dir(metadata_latest):
-        if not callable(getattr(metadata_latest, attr_name)) and not str(attr_name).startswith("_"):
-            value = getattr(metadata_latest, attr_name)
-            if value:
-                setattr(metadata, attr_name, value)
+    for f in dataclasses.fields(metadata_latest):
+        value = getattr(metadata_latest, f.name)
+        if value is not None:
+            setattr(metadata, f.name, value)
 
     # save
     if binary:
@@ -319,7 +325,7 @@ async def pwnedpasswords_get_and_store_async(
 async def pwnedpasswords_get(
     prefix: str,
     hash_type: HashType,
-    etag: Union[str, None],
+    etag: str | None,
     encoding: str,
     http_timeout: int,
     http_max_retires: int,
@@ -353,13 +359,13 @@ async def pwnedpasswords_get(
         server_timestamp=response.headers.get("date"),
         last_modified=response.headers.get("last-modified"),
         content_encoding=response.headers.get("content-encoding"),
-        content_checksum=hashlib.sha256(response.binary).hexdigest() if response.binary else None,
+        content_checksum=hashed_sha256(response.binary) if response.binary else None,
     )
 
     if response.status_code == 304:  # HTTP 304 Not Modified status
         metadata.data_source = PrefixMetadataDataSource.local_source_etag_match
     elif response.status_code == 200:
-        if response.headers.get("cf-cache-status").upper() == "HIT":  # Fragile: relies on HIBP hosted via Cloudflare
+        if response.headers.get("cf-cache-status", "").upper() == "HIT":  # Fragile: relies on HIBP hosted via Cloudflare
             metadata.data_source = PrefixMetadataDataSource.remote_source_remote_cache
         else:
             metadata.data_source = PrefixMetadataDataSource.remote_source_origin_source
@@ -369,7 +375,7 @@ async def pwnedpasswords_get(
     return response.binary, metadata
 
 
-def results_queue_processor(q: Queue):
+def results_queue_processor(q: Queue) -> None:
     running_stats = QueueRunningStats()
 
     while True:
@@ -398,6 +404,7 @@ def results_queue_processor(q: Queue):
             )
 
 
-def to_mbytes(value, rounding=None):
+def to_mbytes(value: float | None, rounding: int | None = None) -> float | None:
     if value is not None:
         return round(value / 1024 / 1024, rounding) if rounding else value / 1024 / 1024
+    return None

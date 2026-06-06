@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 from .hash_type import HashType
 
@@ -20,7 +20,7 @@ class WorkerArgs:
 
     ignore_etag: bool
     local_cache_ttl: int
-    worker_index: Optional[int] = None
+    worker_index: int | None = None
 
-    def as_dict(self):
+    def as_dict(self) -> dict[str, Any]:
         return {k: v for k, v in asdict(self).items()}

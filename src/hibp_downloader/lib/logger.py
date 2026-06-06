@@ -15,7 +15,7 @@
 #
 
 import logging
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 LOGGING_FORMAT = "%(asctime)s | %(levelname)s | __name__ | %(message)s"
 LOGGING_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
@@ -30,8 +30,8 @@ class LoggerNone:
 
 
 def logger_get(
-    name: Union[str, None], loglevel: str = "warning", logfile: Union[str, None] = None
-) -> Union[logging.Logger, LoggerNone]:
+    name: str | None, loglevel: str = "warning", logfile: str | None = None
+) -> logging.Logger | LoggerNone:
     if name is None:
         return LoggerNone()
 
@@ -64,7 +64,7 @@ def logger_get(
     return logger
 
 
-def logger_setlevel(name: str, loglevel: str) -> Union[logging.Logger, LoggerNone]:
+def logger_setlevel(name: str, loglevel: str) -> logging.Logger | LoggerNone:
     logger = logger_get(name)
     logging_level = __logger_level_int(loglevel)
 

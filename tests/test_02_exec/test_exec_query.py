@@ -39,7 +39,7 @@ def test_exec_query_w_metadata():
     stdout, stderr, rc = exec_command("hibp-downloader", args=args)
 
     assert "hibp-downloader | HIBP Downloader" in stderr.decode()
-    if is_match_error_warn(content=stderr.decode(), match_excludes=[]):
+    if is_match_error_warn(content=stderr.decode(), match_excludes=["Password supplied via --password CLI option"]):
         raise AssertionError("ERROR/WARN detected in hibp response")
 
     data = json.loads(stdout)
@@ -82,7 +82,7 @@ def test_exec_query_sha1():
     stdout, stderr, rc = exec_command("hibp-downloader", args=args)
 
     assert "hibp-downloader | HIBP Downloader" in stderr.decode()
-    if is_match_error_warn(content=stderr.decode(), match_excludes=[]):
+    if is_match_error_warn(content=stderr.decode(), match_excludes=["Password supplied via --password CLI option"]):
         raise AssertionError("ERROR/WARN detected in hibp response")
 
     data = json.loads(stdout)
@@ -125,7 +125,7 @@ def test_exec_query_ntlm():
     stdout, stderr, rc = exec_command("hibp-downloader", args=args)
 
     assert "hibp-downloader | HIBP Downloader" in stderr.decode()
-    if is_match_error_warn(content=stderr.decode(), match_excludes=[]):
+    if is_match_error_warn(content=stderr.decode(), match_excludes=["Password supplied via --password CLI option"]):
         raise AssertionError("ERROR/WARN detected in hibp response")
 
     data = json.loads(stdout)

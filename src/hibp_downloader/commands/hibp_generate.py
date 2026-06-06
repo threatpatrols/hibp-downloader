@@ -2,7 +2,7 @@ import asyncio
 import os
 
 import typer
-from typing_extensions import Annotated
+from typing import Annotated
 
 from hibp_downloader import ENCODING_TYPE, HELP_EPILOG_FOOTER, LOGGER_NAME, LOGGING_INFO_EVENT_MODULUS, app_context
 from hibp_downloader.exceptions import HibpDownloaderException

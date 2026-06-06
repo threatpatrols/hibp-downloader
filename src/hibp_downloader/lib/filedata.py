@@ -3,7 +3,6 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple, Union
 
 import aiofiles
 import aiofiles.os
@@ -41,7 +40,7 @@ async def append_stringfile(filepath: Path, content: str) -> None:
         await f.write(content)
 
 
-async def save_bytesfile(filepath: Path, content: bytes, timestamp: Union[datetime, None] = None) -> None:
+async def save_bytesfile(filepath: Path, content: bytes, timestamp: datetime | None = None) -> None:
     full_path = os.path.realpath(os.path.expanduser(filepath))
     await aiofiles.os.makedirs(os.path.dirname(full_path), exist_ok=True)
     async with aiofiles.open(full_path, mode="wb") as f:
@@ -57,7 +56,7 @@ async def save_datafile(
     prefix: str,
     filename_suffix: str,
     content: bytes,
-    timestamp: Union[str, datetime, None] = None,
+    timestamp: str | datetime | None = None,
 ) -> None:
     if isinstance(timestamp, str):
         timestamp = datetime.fromisoformat(timestamp)
@@ -94,7 +93,7 @@ async def load_bytesfile(filepath: Path) -> bytes:
 
 async def load_datafile(
     data_path: Path, hash_type: str, prefix: str, datafile_suffix: str, decompression_type=None, prepend_prefix=False
-) -> Tuple[str, Path]:
+) -> tuple[str, Path]:
     data_filepath = generate_filepath(data_path, hash_type, prefix, datafile_suffix)
     data: bytes = await load_bytesfile(filepath=data_filepath)
 
@@ -142,14 +141,14 @@ async def load_metadata(
         prefix_metadata.last_modified = datetime.fromisoformat(prefix_metadata.last_modified)
 
     if not prefix_metadata.bytes or prefix_metadata.bytes < 1:
-        data_file = os.path.join(data_path, prefix[0:2], prefix[2:4], f"{prefix}.{datafile_suffix}")
-        if os.path.isfile(data_file):
-            prefix_metadata.bytes = os.path.getsize(data_file)
+        data_file = generate_filepath(data_path, hash_type, prefix, datafile_suffix)
+        if data_file.is_file():
+            prefix_metadata.bytes = data_file.stat().st_size
 
     return prefix_metadata
 
 
-def encoding_type_file_suffix(encoding_type: str):
+def encoding_type_file_suffix(encoding_type: str) -> str:
     if encoding_type is None or encoding_type.lower() == "identity":
         return "txt"
     elif encoding_type.lower() == "gzip" or encoding_type.lower() == "gz":

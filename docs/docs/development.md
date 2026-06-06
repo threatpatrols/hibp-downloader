@@ -1,37 +1,34 @@
 # Development
 
-<img src="https://github.com/NiklasRosenstein/slap/raw/develop/.github/assets/logo.svg" style="height: 120px; float: right; margin-left: 24px; margin-bottom: 24px">
+This project uses **[uv](https://github.com/astral-sh/uv)** for development, testing, packaging, and release management.
 
-This project uses the very awesome **[slap-cli](https://niklasrosenstein.github.io/slap/)** utility to help with 
-development, testing, packaging and release management.  Slap-cli works well with the fancy-and-fast UV tooling too. 
+> [!IMPORTANT]
+> To comply with environment guidelines and ensure no local `.venv` is created in the repository, prefix all local `uv` commands with:
+> ```shell
+> UV_PROJECT_ENVIRONMENT=${HOME}/.local/venvs/hibp-download \
+> UV_CACHE_DIR=/tmp/.uv-cache-hibp-download \
+> UV_LINK_MODE=copy
+> ```
 
-## slap-cli
+## Commands
+
 ```shell
-# Create a new venv "env-alias" to work within
-slap venv -cg env-alias
-
-# Activate the "env-alias" venv
-slap venv -ag env-alias
-
-# Install the requirements for the "env-alias" development venv
-slap install --upgrade --link
-
 # Update code formatting
-slap run format
+uv run ruff format .
 
-# Test the package (pytest, uv)
-slap test
+# Run linter
+uv run ruff check .
 
-# Write a "feature" changelog entry
-slap changelog add -t "feature" -d "<changelog message>" [--issue <issue_url>]
+# Run type checker
+uv run mypy src
 
-# Bump the package version at the "patch" semver level
-slap release patch --dry
-slap release patch --tag [--push]
+# Run tests
+uv run pytest tests/ -vv
 
-# Build a package
-slap publish --build-directory build --dry
+# Build a package (wheel and sdist)
+uv build --out-dir dist
 
 # Publish a package
-slap publish
+uv publish dist/*
 ```
+
