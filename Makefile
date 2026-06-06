@@ -9,18 +9,19 @@ ifeq (run,$(firstword $(MAKECMDGOALS)))
   $(eval $(EVAL_ARGS):;@:)
 endif
 
-.PHONY: help format lint test build clean all run
+.PHONY: help format lint test build clean all run release
 
 help:
 ifeq (,$(findstring run,$(MAKECMDGOALS)))
 	@echo "Available targets:"
-	@echo "  make format - Format code with ruff"
-	@echo "  make lint   - Lint code with ruff and mypy"
-	@echo "  make test   - Run tests using pytest"
-	@echo "  make build  - Build sdist and wheel using uv"
-	@echo "  make run    - Run development version of hibp-downloader (use help, query help, etc.)"
-	@echo "  make clean  - Clean build directories and cache files"
-	@echo "  make all    - Run format, lint, test, and build"
+	@echo "  make format  - Format code with ruff"
+	@echo "  make lint    - Lint code with ruff and mypy"
+	@echo "  make test    - Run tests using pytest"
+	@echo "  make build   - Build sdist and wheel using uv"
+	@echo "  make run     - Run development version of hibp-downloader (use help, query help, etc.)"
+	@echo "  make clean   - Clean build directories and cache files"
+	@echo "  make release - Release the current version built packages only to PyPI"
+	@echo "  make all     - Run format, lint, test, and build"
 endif
 
 format:
@@ -51,3 +52,22 @@ run:
 	uv run hibp-downloader $(ARGS) $(RUN_ARGS) || true
 
 all: format lint test build
+
+release:
+	@if [ -z "$(UV_PUBLISH_TOKEN)" ]; then \
+		echo "Error: UV_PUBLISH_TOKEN environment variable is not set." >&2; \
+		exit 1; \
+	fi
+	@VERSION=$$(grep -m 1 -E '^version' pyproject.toml | cut -d '"' -f 2); \
+	if [ -z "$$VERSION" ]; then \
+		echo "Error: Could not determine version from pyproject.toml" >&2; \
+		exit 1; \
+	fi; \
+	WHL_FILE="dist/hibp_downloader-$$VERSION-py3-none-any.whl"; \
+	TAR_FILE="dist/hibp_downloader-$$VERSION.tar.gz"; \
+	if [ ! -f "$$WHL_FILE" ] || [ ! -f "$$TAR_FILE" ]; then \
+		echo "Error: Release files for version $$VERSION not found. Please run 'make build' first." >&2; \
+		exit 1; \
+	fi; \
+	echo "Releasing version $$VERSION to PyPI..."; \
+	uv publish $$WHL_FILE $$TAR_FILE
