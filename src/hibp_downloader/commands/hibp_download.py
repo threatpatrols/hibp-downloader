@@ -1,12 +1,13 @@
-
 import asyncio
 import dataclasses
 import os
 from datetime import datetime
 from multiprocessing import Manager, Process, Queue
+from queue import Empty
 from pathlib import Path
 from typing import Any
 
+import httpx
 import typer
 from typing import Annotated
 
@@ -28,7 +29,7 @@ from hibp_downloader.exceptions import HibpDownloaderException
 from hibp_downloader.lib.filedata import encoding_type_file_suffix, load_metadata, save_datafile, save_metadatafile, verify_binary_encoding
 from hibp_downloader.lib.generators import hex_sequence, iterable_chunker
 from hibp_downloader.lib.hashing import hashed_sha256
-from hibp_downloader.lib.http import httpx_binary_response
+from hibp_downloader.lib.http import httpx_async_client, httpx_binary_response
 from hibp_downloader.lib.logger import logger_get
 from hibp_downloader.models import (
     HashType,
@@ -126,8 +127,10 @@ def main(
         ignore_etag = True
         local_cache_ttl = 0
 
-    result_queue = Manager().Queue()
-    results_queue_process = Process(target=results_queue_processor, args=(result_queue,))
+    manager = Manager()
+    result_queue = manager.Queue()
+    summary_queue = manager.Queue()
+    results_queue_process = Process(target=results_queue_processor, args=(result_queue, summary_queue))
     results_queue_process.daemon = True
     results_queue_process.start()
 
@@ -157,7 +160,7 @@ def main(
         )
 
         logger.info(f"Created {len(worker_processes)} worker processes to consume a queue of prefix-hash values.")
-        logger.info("Legend: lc = local-cache, et = ETag-match, rc = remote-cache, ro = remote-origin, xx = unknown/failed")
+        logger.info("Source legend: lc = local TTL cache, et = local ETag match, rc = remote CDN cache, ro = remote origin source, xx = unknown/failed")
 
         for i, worker_process in enumerate(worker_processes):
             worker_process.join()
@@ -165,6 +168,21 @@ def main(
 
         result_queue.put(QUEUE_WORKER_EXIT_SENTINEL)
         results_queue_process.join()
+
+        try:
+            result_summary: dict[str, int] = summary_queue.get(timeout=5)
+        except Empty:
+            logger.error("Download summary process did not return a failure-count summary")
+            raise typer.Exit(1)
+
+        failed_prefix_count = result_summary.get("failed_prefix_count", 0)
+
+        if failed_prefix_count > 0:
+            logger.error(
+                f"Download completed with {failed_prefix_count} failed prefixes; rerun download for the same range to recover."
+            )
+            raise typer.Exit(1)
+
         logger.info("Done")
 
     except KeyboardInterrupt:
@@ -216,17 +234,33 @@ def queue_worker_process(work_queue: Queue, result_queue: Queue, worker_index: i
 
 async def async_worker_loop(work_queue: Queue, result_queue: Queue, worker_index: int, worker_args: WorkerArgs) -> None:
     loop = asyncio.get_running_loop()
-    while True:
-        hash_prefixes = await loop.run_in_executor(None, work_queue.get)
-        if hash_prefixes == QUEUE_WORKER_EXIT_SENTINEL:
-            break
-        worker_args.worker_index = worker_index
-        await pwnedpasswords_get_store_gather(result_queue, hash_prefixes, worker_args)
+
+    async with httpx_async_client(
+        encoding=worker_args.encoding_type,
+        timeout=worker_args.http_timeout,
+        proxy=worker_args.http_proxy,
+        verify=worker_args.http_certificates,
+        debug=worker_args.http_debug,
+    ) as http_client:
+        while True:
+            hash_prefixes = await loop.run_in_executor(None, work_queue.get)
+            if hash_prefixes == QUEUE_WORKER_EXIT_SENTINEL:
+                break
+            worker_args.worker_index = worker_index
+            await pwnedpasswords_get_store_gather(result_queue, hash_prefixes, worker_args, http_client=http_client)
 
 
-async def pwnedpasswords_get_store_gather(result_queue: Queue, hash_prefixes: tuple, worker_args: WorkerArgs) -> None:
+async def pwnedpasswords_get_store_gather(
+    result_queue: Queue,
+    hash_prefixes: tuple,
+    worker_args: WorkerArgs,
+    http_client: httpx.AsyncClient | None = None,
+) -> None:
     metadata_results = await asyncio.gather(
-        *[pwnedpasswords_get_and_store_async(hash_prefix, **worker_args.as_dict()) for hash_prefix in hash_prefixes],
+        *[
+            pwnedpasswords_get_and_store_async(hash_prefix, http_client=http_client, **worker_args.as_dict())
+            for hash_prefix in hash_prefixes
+        ],
     )
     result_queue.put(metadata_results)
 
@@ -245,6 +279,7 @@ async def pwnedpasswords_get_and_store_async(
     ignore_etag: bool,
     local_cache_ttl: int,
     worker_index: int,
+    http_client: httpx.AsyncClient | None = None,
 ) -> PrefixMetadata:
     logger_ = logger_get(name=LOGGER_NAME)
     start_timestamp = datetime.now().astimezone()
@@ -294,6 +329,7 @@ async def pwnedpasswords_get_and_store_async(
         http_proxy=http_proxy,
         http_certificates=http_certificates,
         http_debug=http_debug,
+        http_client=http_client,
     )
     metadata_latest.start_timestamp = start_timestamp
 
@@ -333,7 +369,8 @@ async def pwnedpasswords_get(
     http_proxy: str,
     http_certificates: str,
     http_debug: bool,
-):
+    http_client: httpx.AsyncClient | None = None,
+) -> tuple[bytes | None, PrefixMetadata]:
     url = f"{PWNEDPASSWORDS_API_URL}/range/{prefix}"
     if hash_type == HashType.ntlm:
         url += "?mode=ntlm"
@@ -348,25 +385,28 @@ async def pwnedpasswords_get(
             max_retries=http_max_retires,
             proxy=http_proxy,
             verify=http_certificates,
+            client=http_client,
         )
     except HibpDownloaderException:
         return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
+
+    binary = getattr(response, "binary", b"")
 
     metadata = PrefixMetadata(
         prefix=prefix,
         hash_type=hash_type,
         etag=response.headers.get("etag"),
-        bytes=len(response.binary),
+        bytes=len(binary),
         server_timestamp=response.headers.get("date"),
         last_modified=response.headers.get("last-modified"),
         content_encoding=response.headers.get("content-encoding"),
-        content_checksum=hashed_sha256(response.binary) if response.binary else None,
+        content_checksum=hashed_sha256(binary) if binary else None,
     )
 
     if response.status_code == 304:  # HTTP 304 Not Modified status
         metadata.data_source = PrefixMetadataDataSource.local_source_etag_match
     elif response.status_code == 200:
-        if not verify_binary_encoding(response.binary, encoding):
+        if not verify_binary_encoding(binary, encoding):
             logger.warning(f"Prefix {prefix}: Invalid binary received (mismatch with expected encoding '{encoding}')")
             return None, PrefixMetadata(prefix=prefix, data_source=PrefixMetadataDataSource.unknown_source_status)
         if response.headers.get("cf-cache-status", "").upper() == "HIT":  # Fragile: relies on HIBP hosted via Cloudflare
@@ -376,36 +416,43 @@ async def pwnedpasswords_get(
     else:
         metadata.data_source = PrefixMetadataDataSource.unknown_source_status
 
-    return response.binary, metadata
+    return binary, metadata
 
 
-def results_queue_processor(q: Queue) -> None:
+def results_queue_processor(q: Queue, summary_queue: Queue) -> None:
     running_stats = QueueRunningStats()
 
-    while True:
-        metadata_items = q.get()
-        if metadata_items == QUEUE_WORKER_EXIT_SENTINEL:
-            running_stats.end_trigger()
-            logger.info(f"Finished in {round(running_stats.run_time / 60, 1)}min")
-            break
+    try:
+        while True:
+            metadata_items = q.get()
+            if metadata_items == QUEUE_WORKER_EXIT_SENTINEL:
+                running_stats.end_trigger()
+                logger.info(f"Finished in {round(running_stats.run_time / 60, 1)}min")
+                summary_queue.put({"failed_prefix_count": running_stats.unknown_source_status_count_sum})
+                break
 
-        if metadata_items:
-            running_stats.add_item_stats(item=QueueItemStatsCompute(metadata_items).stats)
+            if metadata_items:
+                for metadata_item in metadata_items:
+                    if metadata_item.data_source == PrefixMetadataDataSource.unknown_source_status:
+                        logger.error(f"Failed to download prefix {metadata_item.prefix!r}; local data file was not updated")
+                running_stats.add_item_stats(item=QueueItemStatsCompute(metadata_items).stats)
 
-        if running_stats.queue_item_count % LOGGING_INFO_EVENT_MODULUS == 0:
-            logger.info(
-                f"prefix={running_stats.prefix_latest} "
-                f"source=[lc:{running_stats.local_source_ttl_cache_count_sum} "
-                f"et:{running_stats.local_source_etag_match_count_sum} "
-                f"rc:{running_stats.remote_source_remote_cache_count_sum} "
-                f"ro:{running_stats.remote_source_origin_source_count_sum} "
-                f"xx:{running_stats.unknown_source_status_count_sum}] "
-                f"processed=[{to_mbytes(running_stats.bytes_processed_sum, 1)}MB "
-                f"~{int(running_stats.bytes_processed_rate_total / APPROX_GZIP_BYTES_PER_HASH)}H/s] "
-                f"api=[{int(running_stats.request_rate_total)}req/s "
-                f"{to_mbytes(running_stats.bytes_received_sum, 1)}MB] "
-                f"runtime={round(running_stats.run_time / 60, 1)}min"
-            )
+            if running_stats.queue_item_count % LOGGING_INFO_EVENT_MODULUS == 0:
+                logger.info(
+                    f"prefix={running_stats.prefix_latest} "
+                    f"source=[lc:{running_stats.local_source_ttl_cache_count_sum} "
+                    f"et:{running_stats.local_source_etag_match_count_sum} "
+                    f"rc:{running_stats.remote_source_remote_cache_count_sum} "
+                    f"ro:{running_stats.remote_source_origin_source_count_sum} "
+                    f"xx:{running_stats.unknown_source_status_count_sum}] "
+                    f"processed=[{to_mbytes(running_stats.bytes_processed_sum, 1)}MB "
+                    f"~{int(running_stats.bytes_processed_rate_total / APPROX_GZIP_BYTES_PER_HASH)}H/s] "
+                    f"api=[{int(running_stats.request_rate_total)}req/s "
+                    f"{to_mbytes(running_stats.bytes_received_sum, 1)}MB] "
+                    f"runtime={round(running_stats.run_time / 60, 1)}min"
+                )
+    except KeyboardInterrupt:
+        return
 
 
 def to_mbytes(value: float | None, rounding: int | None = None) -> float | None:

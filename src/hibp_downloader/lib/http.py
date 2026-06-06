@@ -1,4 +1,3 @@
-
 import random
 from typing import Any, Callable
 
@@ -36,7 +35,62 @@ async def httpx_binary_response(
     proxy: str = "",
     verify: str | bool = "",
     debug: bool = False,
+    client: httpx.AsyncClient | None = None,
 ) -> Any:
+    httpx_client = httpx_client_options(
+        etag=etag,
+        encoding=encoding,
+        timeout=timeout,
+        proxy=proxy,
+        verify=verify,
+        debug=debug,
+    )
+
+    if client:
+        return await _httpx_binary_response_with_client(
+            client=client,
+            url=url,
+            method=method,
+            max_retries=max_retries,
+        )
+
+    async with httpx.AsyncClient(**httpx_client) as http_client:
+        return await _httpx_binary_response_with_client(
+            client=http_client,
+            url=url,
+            method=method,
+            max_retries=max_retries,
+        )
+
+
+def httpx_async_client(
+    etag: str | None = None,
+    encoding: str | None = "gzip",
+    timeout: int | float = 10,
+    proxy: str = "",
+    verify: str | bool = "",
+    debug: bool = False,
+) -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        **httpx_client_options(
+            etag=etag,
+            encoding=encoding,
+            timeout=timeout,
+            proxy=proxy,
+            verify=verify,
+            debug=debug,
+        )
+    )
+
+
+def httpx_client_options(
+    etag: str | None = None,
+    encoding: str | None = "gzip",
+    timeout: int | float = 10,
+    proxy: str = "",
+    verify: str | bool = "",
+    debug: bool = False,
+) -> dict[str, Any]:
     event_hooks: dict[str, list[Callable[..., Any]]] = {}
     if debug:
         event_hooks["request"] = [httpx_debug_request]
@@ -52,7 +106,7 @@ async def httpx_binary_response(
     if etag:
         headers["If-None-Match"] = etag
 
-    httpx_client: dict[str, Any] = {
+    client_options: dict[str, Any] = {
         "headers": headers,
         "http2": True,
         "timeout": timeout,
@@ -61,34 +115,50 @@ async def httpx_binary_response(
     }
 
     if not proxy == "":
-        httpx_client["proxy"] = proxy
+        client_options["proxy"] = proxy
 
     if not verify == "":
-        httpx_client["verify"] = verify
+        client_options["verify"] = verify
 
     if event_hooks:
-        httpx_client["event_hooks"] = event_hooks
+        client_options["event_hooks"] = event_hooks
+
+    return client_options
+
+
+async def _httpx_binary_response_with_client(
+    client: httpx.AsyncClient,
+    url: str,
+    method: str = "GET",
+    max_retries: int = 3,
+) -> Any:
+    original_url = url
+    attempt = 0
 
     if __TESTING_RANDOM_ERROR_INJECT_RATE and __TESTING_RANDOM_ERROR_INJECT_RATE > random.random():
         url = url.replace("http", "BR0KEN")
         logger.warning(f"Testing, creating broken URL {url}")
 
-    async with httpx.AsyncClient(**httpx_client) as client:
-        for attempt in range(1, max_retries + 1):
-            logger.debug(f"Request attempt {attempt} of {max_retries} for {url!r}")
-            request = client.build_request(method=method, url=url)
+    while attempt < max_retries:
+        attempt += 1
+        logger.debug(f"Request attempt {attempt} of {max_retries} for {url!r}")
+        request = client.build_request(method=method, url=url)
+        response = None
+        try:
+            response = await client.send(request=request, stream=True)
             try:
-                response = await client.send(request=request, stream=True)
-                try:
-                    response.binary = b"".join([part async for part in response.aiter_raw()])  # type: ignore[attr-defined]
-                    return response
-                finally:
-                    await response.aclose()
-            except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.HTTPError):
-                logger.warning(f"Request [{attempt} of {max_retries}] failed for {request.method!r} {url!r}")
-                if attempt >= max_retries:
-                    raise HibpDownloaderException(f"Request failed after {attempt} retries: {url!r}")
-                if "BR0KEN" in url:
-                    url = url.replace("BR0KEN", "http")
+                response.binary = b"".join([part async for part in response.aiter_raw()])  # type: ignore[attr-defined]
+                return response
+            finally:
+                await response.aclose()
+        except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.HTTPError):
+            logger.warning(f"Request [{attempt} of {max_retries}] failed for {request.method!r} {url!r}")
+            if attempt >= max_retries:
+                raise HibpDownloaderException(f"Request failed after {attempt} retries: {original_url!r}")
+            if "BR0KEN" in url:
+                url = url.replace("BR0KEN", "http")
+            else:
+                url = original_url
+            continue
 
-    raise HibpDownloaderException(f"Request failed after {max_retries} retries: {url!r}")
+    raise HibpDownloaderException(f"Request failed after {max_retries} retries: {original_url!r}")
