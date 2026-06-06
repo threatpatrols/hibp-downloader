@@ -49,6 +49,9 @@ def test_exec_generate():
 
     lines = stdout.decode().split("\n")
     assert len(lines) > 500
+    for line in lines:
+        assert ".gz" not in line
+        assert "hibp-test" not in line
 
 
 def test_exec_generate_sha1():

@@ -11,6 +11,9 @@ def test_exec_validate():
     prefix = str(uuid4().hex)[0:4]
     data_path = f"/tmp/hibp-test/{prefix}"
 
+    # Clean up any leftover files
+    shutil.rmtree(data_path, ignore_errors=True)
+
     # 1. Download a small range of hashes (6 prefixes: e.g. e5b90 to e5b95)
     # fmt: off
     args_download = [

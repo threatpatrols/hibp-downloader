@@ -71,12 +71,13 @@ async def pwnedpasswords_datastore_sorted_gather(filename, hash_type, first_hash
             *[pwnedpasswords_datastore_sorted_async(prefix, hash_type) for prefix in prefixes],
         )
 
-        if iteration_count == 0 or iteration_count % (LOGGING_INFO_EVENT_MODULUS * LOGGING_INFO_EVENT_MODULUS) == 0:
+        if iteration_count == 0 or iteration_count % (LOGGING_INFO_EVENT_MODULUS * 5) == 0:
             logger.info(f"Prefix position {prefixes[0]!r} appending to {filename!r}")
         iteration_count += 1
 
         output = ""
-        for k, v in dict(sorted({k: v for d in results for k, v in d.items()}.items())).items():
+        contents = {k: v for d in results for k, v in d.items() if not k.endswith("_datafile")}
+        for k, v in sorted(contents.items()):
             output = f"{output}\n{v}"
         await append_stringfile(filepath=filename, content=output)
 

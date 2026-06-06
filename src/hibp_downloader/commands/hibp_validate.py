@@ -88,6 +88,7 @@ async def pwnedpasswords_validate_gather(
     prefixes = list(hex_sequence(hex_first=first_hash, hex_last=last_hash))
     total_prefixes = len(prefixes)
     logger.info(f"Validating {total_prefixes} prefixes...")
+    logger.info("Legend: vd = valid, ms = missing, cr = corrupted")
 
     iteration_count = 0
     for chunk in iterable_chunker(iterable=prefixes, size=chunk_size):
@@ -121,7 +122,7 @@ async def pwnedpasswords_validate_gather(
                 f"prefix={chunk[-1]} "
                 f"checked={stats.checked} "
                 f"stats=[vd:{stats.valid} ms:{stats.missing_data} cr:{stats.corrupted}] "
-                f"rate={rate}p/s "
+                f"rate={rate}files/sec "
                 f"runtime={round(elapsed / 60, 1)}min"
             )
 

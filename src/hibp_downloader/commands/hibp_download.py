@@ -157,6 +157,7 @@ def main(
         )
 
         logger.info(f"Created {len(worker_processes)} worker processes to consume a queue of prefix-hash values.")
+        logger.info("Legend: lc = local-cache, et = ETag-match, rc = remote-cache, ro = remote-origin, xx = unknown/failed")
 
         for i, worker_process in enumerate(worker_processes):
             worker_process.join()
