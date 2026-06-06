@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from pathlib import Path
 import typer
 from typing import Annotated
@@ -24,6 +25,11 @@ class ValidationStats:
         self.valid = 0
         self.missing_data = 0
         self.corrupted = 0
+        self.start_time = time.time()
+
+    @property
+    def run_time(self) -> float:
+        return time.time() - self.start_time
 
 
 @command.callback(invoke_without_command=True)
@@ -108,8 +114,16 @@ async def pwnedpasswords_validate_gather(
                 stats.corrupted += 1
 
         iteration_count += len(chunk)
-        if iteration_count % (LOGGING_INFO_EVENT_MODULUS * LOGGING_INFO_EVENT_MODULUS) == 0 or iteration_count == total_prefixes:
-            logger.info(f"Progress: {iteration_count}/{total_prefixes} prefixes checked.")
+        if (iteration_count // chunk_size) % LOGGING_INFO_EVENT_MODULUS == 0 or iteration_count == total_prefixes:
+            elapsed = stats.run_time
+            rate = int(stats.checked / elapsed) if elapsed > 0 else 0
+            logger.info(
+                f"prefix={chunk[-1]} "
+                f"checked={stats.checked} "
+                f"stats=[vd:{stats.valid} ms:{stats.missing_data} cr:{stats.corrupted}] "
+                f"rate={rate}p/s "
+                f"runtime={round(elapsed / 60, 1)}min"
+            )
 
 
 async def verify_local_datafile(
