@@ -22,6 +22,7 @@ as fast as is Pythonly possible.
  - Ability to generate a single text file with in-order pwned password hash values, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from 
    the awesome HIBP team.
  - Per prefix file metadata in JSON format for easy data reuse by other tooling if required.
+ - Standalone validation command to verify the local copy dataset, clean up corrupted or incomplete files, and remove orphaned metadata files.
 
 ## Install
 ```commandline
@@ -29,7 +30,7 @@ pipx install hibp-downloader
 ```
 
 ## Usage (download)
-![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/content/assets/screenshot-help.png)
+![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/docs/assets/img/screenshot-help.png)
 
 ## Performance
 Sample download activity log; host with 32 cores on 500Mbit/s connection. 
@@ -43,20 +44,33 @@ Sample download activity log; host with 32 cores on 500Mbit/s connection.
 
  - 918x requests per second to `api.pwnedpasswords.com`
  - Log sources are shorthand:
-     - `lc`: 13616 from local-cache (lc) - request-responses handled locally without hitting the network. 
-     - `et`: 3 etag-matched (et) - request-responses that confirmed our local data was up-to-date and did not require a new download.
-     - `rc`: 1002958 from remote-cache (rc) - request-responses that were downloaded to local, but came from the remote-server cache.
-     - `ro`: 25 from remote-origin (ro) - request-responses that were downloaded to local, and the download needed to be fetched from remote origin source.
-     - `xx`: 1 failed responses - request-responses that failed (and successfully retried).
+     - `lc`: local-cache - request-responses handled locally without hitting the network. 
+     - `et`: ETag match - request-responses that confirmed our local data was up-to-date and did not require a new download.
+     - `rc`: remote-cache - request-responses that were downloaded to local, but came from the remote-server cache.
+     - `ro`: remote-origin - request-responses that were downloaded to local, and the download needed to be fetched from remote origin source.
+     - `xx`: unknown/failed - request-responses that failed (and successfully retried).
  - ~17GB downloaded in ~36 minutes (full dataset)
  - Approx ~414k hash values received per second
  - Processing in this example appears to be CPU bound, measured traffic around ~160 Mbit/s.
 
 ## Usage (query)
-![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/content/assets/screenshot-query-help.png)
+![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/docs/assets/img/screenshot-query-help.png)
+
+## Usage (generate)
+Generate a single in-order text file with compromised hashes from your local data store:
+```commandline
+hibp-downloader --data-path /path/to/data generate --filename pwned-hashes.txt --hash-type sha1
+```
+
+## Usage (validate)
+Validate local pwned password files and automatically clean up corrupted data or orphaned metadata files:
+```commandline
+hibp-downloader --data-path /path/to/data validate --hash-type sha1
+```
 
 ## Project
 
  - Docs - [threatpatrols.github.io/hibp-downloader](https://threatpatrols.github.io/hibp-downloader)
  - PyPI - [pypi.org/project/hibp-downloader/](https://pypi.org/project/hibp-downloader/)
  - Github - [github.com/threatpatrols/hibp-downloader](https://github.com/threatpatrols/hibp-downloader)
+
