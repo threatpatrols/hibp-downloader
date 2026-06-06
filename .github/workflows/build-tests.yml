@@ -41,5 +41,5 @@ jobs:
     - name: Install the package from whl and run the application
       run: |
         uv venv tester
-        uv pip install --venv tester build-tester/*.whl
+        uv pip install --python tester build-tester/*.whl
         tester/bin/hibp-downloader --help
