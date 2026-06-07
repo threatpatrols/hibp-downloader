@@ -142,9 +142,6 @@ class QueueItemStatsCompute:
             if item.start_timestamp and item.start_timestamp < oldest_timestamp:
                 oldest_timestamp = item.start_timestamp
 
-            if item.data_source != PrefixMetadataDataSource.local_source_ttl_cache:
-                data["request_count"] += 1
-
             item_bytes = 0
             if item.bytes and item.bytes > 0:
                 item_bytes = item.bytes
@@ -155,6 +152,9 @@ class QueueItemStatsCompute:
                 PrefixMetadataDataSource.local_source_etag_match,
             ):
                 data["bytes_received"] += item_bytes
+
+            # Count every request that actually hit the API (including 304 etag matches)
+            if item.data_source != PrefixMetadataDataSource.local_source_ttl_cache:
                 data["request_count"] += 1
 
             if item.data_source == PrefixMetadataDataSource.local_source_ttl_cache:

@@ -52,6 +52,7 @@ async def httpx_binary_response(
             url=url,
             method=method,
             max_retries=max_retries,
+            etag=etag,
         )
 
     async with httpx.AsyncClient(**httpx_client) as http_client:
@@ -131,6 +132,7 @@ async def _httpx_binary_response_with_client(
     url: str,
     method: str = "GET",
     max_retries: int = 3,
+    etag: str | None = None,
 ) -> Any:
     original_url = url
     attempt = 0
@@ -142,7 +144,8 @@ async def _httpx_binary_response_with_client(
     while attempt < max_retries:
         attempt += 1
         logger.debug(f"Request attempt {attempt} of {max_retries} for {url!r}")
-        request = client.build_request(method=method, url=url)
+        per_request_headers = {"If-None-Match": etag} if etag else {}
+        request = client.build_request(method=method, url=url, headers=per_request_headers)
         response = None
         try:
             response = await client.send(request=request, stream=True)

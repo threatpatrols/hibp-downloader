@@ -373,6 +373,7 @@ async def pwnedpasswords_get_and_store_async(
 
     if metadata.data_source not in (
         PrefixMetadataDataSource.local_source_ttl_cache,
+        PrefixMetadataDataSource.local_source_etag_match,
         PrefixMetadataDataSource.unknown_source_status,
     ):
         await save_metadatafile(metadata_path=metadata_path, hash_type=hash_type, prefix=prefix, metadata=metadata)

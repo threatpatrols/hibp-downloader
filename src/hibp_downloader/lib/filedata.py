@@ -154,6 +154,15 @@ async def load_metadata(
     if isinstance(prefix_metadata.last_modified, str):
         prefix_metadata.last_modified = datetime.fromisoformat(prefix_metadata.last_modified)
 
+    # If the data file is missing despite metadata existing, force a re-download
+    # by returning empty metadata (clears etag and server_timestamp so we don't skip)
+    data_file = generate_filepath(data_path, hash_type, prefix, datafile_suffix)
+    if not data_file.is_file():
+        logger.debug(
+            f"Data file {str(data_file)!r} missing despite metadata existing for {prefix!r}, forcing re-download"
+        )
+        return PrefixMetadata(prefix=prefix)
+
     if not prefix_metadata.bytes or prefix_metadata.bytes < 1:
         data_file = generate_filepath(data_path, hash_type, prefix, datafile_suffix)
         if data_file.is_file():
