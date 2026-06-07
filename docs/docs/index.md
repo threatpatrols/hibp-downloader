@@ -11,15 +11,13 @@ multiprocessing, async-processes, local-caching, content-etags and http2-connect
 as fast as is Pythonly possible.
 
 ## Features
- - Interface to directly `query` for compromised password values from the *compressed* file data-store!
- - Download and store acquired data in gzip'd compressed to save on storage and speed up queries. 
- - Download the full dataset in under 45 mins (generally CPU bound)
+ - **Direct password lookups** via the `query` command — check passwords against the *compressed* data store with no database or decompression step needed. Fast enough to use behind a web service.
+ - Download and store acquired data in gzip compressed format to save on storage and speed up queries.
+ - Download the full dataset in under 45 mins (generally CPU bound).
  - Easily resume interrupted `download` operations into a `--data-path` without re-clobbering api-source.
- - Only download hash-prefix content blocks when the source content has changed (via content ETAG values); making it 
+ - Only download hash-prefix content blocks when the source content has changed (via content ETAG values); making it
    easy to periodically sync-up when needed.
- - Query interface performance is efficient enough to attach a user web-service with reasonable loads (ie don't waste 
-   your own resources decompressing the dataset and storing in a database!)
- - Ability to generate a single text file with in-order pwned password hash values, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from 
+ - Ability to generate a single text file with in-order pwned password hash values, similar to [PwnedPasswordsDownloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader) from
    the awesome HIBP team.
  - Per prefix file metadata in JSON format for easy data reuse by other tooling if required.
  - Standalone validation command to verify the local copy dataset, clean up corrupted or incomplete files, and remove orphaned metadata files.
@@ -54,10 +52,14 @@ Sample download activity log; host with 32 cores on 500Mbit/s connection.
  - Processing in this example appears to be CPU bound, measured traffic around ~160 Mbit/s.
 
 ## Usage (query)
+Query passwords directly against the compressed data store — no decompression, no database 
+import required.  This is the recommended approach for any password-checking lookup.
 ![screenshot-help.png](https://raw.githubusercontent.com/threatpatrols/hibp-downloader/main/docs/docs/assets/img/screenshot-query-help.png)
 
 ## Usage (generate)
-Generate a single in-order text file with compromised hashes from your local data store:
+Generate a single decompressed text file from the data store.  If you are generating this to 
+import into a database for lookups, consider using the `query` command directly instead — 
+it is faster to set up, far easier to maintain, and uses a fraction of the storage.
 ```commandline
 hibp-downloader --data-path /path/to/data generate --filename pwned-hashes.txt --hash-type sha1
 ```

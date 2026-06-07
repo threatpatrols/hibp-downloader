@@ -6,8 +6,8 @@ nav:
     - Home: index.md
     - Commands:
       - command/download.md
-      - command/generate.md
       - command/query.md
+      - command/generate.md
       - command/validate.md
     - Other:
       - project.md

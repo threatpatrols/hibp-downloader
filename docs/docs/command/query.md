@@ -1,27 +1,43 @@
 # Query
 
-The ability to directly query plain-text passwords against the in-place `--data-path` makes it possible
-to quickly determine if a matching hash is in the dataset without needing to manually compress or try
-and store the dataset in a database.
+The `query` command is the **recommended way to check passwords** against your local HIBP data store.
 
-The lookup is fast and efficient.
+Rather than decompressing the entire dataset and importing it into a database, `query` takes a 
+fundamentally smarter approach: it locates the single compressed prefix file where a given 
+password hash would live, decompresses just that one file on-the-fly, and checks for a match.
+The result is returned in well under a second — even from network-attached storage.
 
-This is achieved by -
+## Why query instead of a database?
 
- * taking a sha1/ntlm hash of the user supplied password
- * using this to determine the local compressed content-file this password should exist in if it does exist at all 
- * decompress the hash-prefix content file and seek the actual hash.
+| Approach | Storage | Maintenance | Complexity |
+|----------|---------|-------------|------------|
+| **`query`** (recommended) | ~17 GB compressed | Just re-run `download` periodically | None — works directly on the data store |
+| Decompress + database import | ~40+ GB uncompressed + DB overhead | Regenerate, re-import, re-index on every update | Database setup, schema, indexing, import pipeline |
 
-This process is quite efficient in its own right and can support decent-enough queries per second such
-that you likely do not need to implement a database to have a service query this dataset.  Consider the `--quiet`
-option to 
+The compressed data store from `download` is all you need.  The `query` command works directly 
+against it — no intermediate steps, no database, no extra storage.
+
+!!! tip "Building a password-checking service?"
+
+    The query interface is efficient enough to use directly behind a web service at reasonable
+    request loads.  Use the `--quiet` flag to suppress log output and capture only the JSON 
+    result.  There is no need to decompress the dataset into a database for a lookup service.
+
+## How it works
+
+ 1. Takes a SHA1 or NTLM hash of the supplied password.
+ 2. Uses the hash prefix to locate the correct compressed data file on disk.
+ 3. Decompresses that single file in memory and searches for the full hash.
+ 4. Returns the match status and HIBP occurrence count as JSON.
 
 ## Usage
 ![screenshot-help.png](../assets/img/screenshot-query-help.png)
 
-CAUTION: by default the CLI will ask the user to input the password (without being shown), it is also possible
-to use the `--password` input option to pass this in directly;  If you do this you must understand the potential
-for those passwords to be recorded in clear-text in shell-histories and perhaps other logs. 
+!!! caution
+
+    By default the CLI will prompt for the password without echoing it.  The `--password` option 
+    passes the value directly, but be aware that this may record the password in clear-text in 
+    shell history and system logs.
 
 ## Example: with prompt input
 ```commandline
@@ -53,7 +69,7 @@ $ hibp-downloader --data-path /opt/storage/hibp-datastore query --password fooba
 ```
 
 ## Example: query time using --password option
-Response time at around 600ms from NFS backed storage location; fast enough to be used directly for services. 
+Response time at around 600ms from NFS-backed storage; fast enough to use directly for services. 
 ```commandline
 $ time hibp-downloader --quiet --data-path /opt/storage/hibp-datastore query --password foobar
 {
