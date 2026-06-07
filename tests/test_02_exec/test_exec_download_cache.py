@@ -34,10 +34,13 @@ def _base_args(prefix: str, data_path: str, first_suffix: str = "0", last_suffix
     """Return a standard set of CLI args for a small download range."""
     return [
         "--debug",
-        "--data-path", data_path,
+        "--data-path",
+        data_path,
         "download",
-        "--first-hash", f"{prefix}{first_suffix}",
-        "--last-hash", f"{prefix}{last_suffix}",
+        "--first-hash",
+        f"{prefix}{first_suffix}",
+        "--last-hash",
+        f"{prefix}{last_suffix}",
     ]
 
 
@@ -307,9 +310,6 @@ def test_exec_download_missing_datafile_triggers_redownload():
     for p in deleted_prefixes:
         path = _data_file_path(data_path, "sha1", p)
         assert os.path.isfile(path), (
-            f"Data file {path} was not recreated after being deleted — "
-            f"the re-download did not produce a file."
+            f"Data file {path} was not recreated after being deleted — the re-download did not produce a file."
         )
-        assert os.path.getsize(path) > 0, (
-            f"Data file {path} was recreated but is empty."
-        )
+        assert os.path.getsize(path) > 0, f"Data file {path} was recreated but is empty."
