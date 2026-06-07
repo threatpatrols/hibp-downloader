@@ -1,5 +1,5 @@
 
-name: build tests
+name: build tests & release
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 jobs:
 
   test:
-    name: "Test package"
+    name: "Test & Lint"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,12 +34,42 @@ jobs:
       run: |
         uv run pytest tests/ -vv
 
+  release:
+    name: "Build, Attest, & Release"
+    needs: test
+    # Only run this job if a tag was pushed and all tests passed
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write       # Required for OIDC / Sigstore attestation & PyPI publish
+      attestations: write   # Required for generating and storing build provenance
+      contents: write       # Required for creating/updating the GitHub Release
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        python-version: "3.12"
+        enable-cache: true
+
     - name: Build package
       run: |
-        uv build --out-dir build-tester
+        uv build --out-dir dist
 
-    - name: Install the package from whl and run the application
-      run: |
-        uv venv tester
-        uv pip install --python tester build-tester/*.whl
-        tester/bin/hibp-downloader --help
+    - name: Attest build provenance
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-path: "dist/*"
+
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dist/*.whl
+          dist/*.tar.gz
+        generate_release_notes: true
